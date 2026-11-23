@@ -2,9 +2,9 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { Locale } from "@/lib/i18n/config";
-import type { ImageMediaType } from "@/lib/image-validation";
 import { AnalysisSchema, normalizeAnalysis, type Analysis } from "./schema";
-import { buildSystemPrompt, buildUserPrompt } from "./prompt";
+import { buildSystemPrompt, buildUserPrompt, type LandingInfo } from "./prompt";
+import { prepareImageForModel } from "./prepare-image";
 import { mockAnalysis } from "./mock";
 
 export const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5-5";
@@ -28,19 +28,21 @@ function getClient(): Anthropic {
 }
 
 export type AnalyzeInput = {
-  image: { base64: string; mediaType: ImageMediaType };
+  /** Raw uploaded bytes (already validated: JPG/PNG/WEBP, max 10MB). */
+  imageBytes: Uint8Array;
   adText: string;
   product: string;
   locale: Locale;
+  landing?: LandingInfo;
 };
 
 export async function analyzeAd(input: AnalyzeInput): Promise<{ analysis: Analysis; model: string }> {
+  const [system, image] = await Promise.all([buildSystemPrompt(), prepareImageForModel(input.imageBytes)]);
   if (process.env.AI_MOCK === "1") {
+    // Demo mode: same pipeline (image is decoded/resized) but no API call.
     return { analysis: mockAnalysis(input.locale), model: "mock" };
   }
-
   const anthropic = getClient();
-  const system = await buildSystemPrompt();
   const useFallback = process.env.CLAUDE_FALLBACK !== "off";
 
   let response;
@@ -64,7 +66,7 @@ export async function analyzeAd(input: AnalyzeInput): Promise<{ analysis: Analys
           content: [
             {
               type: "image",
-              source: { type: "base64", media_type: input.image.mediaType, data: input.image.base64 },
+              source: { type: "base64", media_type: image.mediaType, data: image.base64 },
             },
             { type: "text", text: buildUserPrompt(input) },
           ],

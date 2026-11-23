@@ -1,10 +1,12 @@
-export function Disclaimer({ text, className = "" }: { text: string; className?: string }) {
+import { TriangleAlert } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+
+export function Disclaimer({ text, className }: { text: string; className?: string }) {
   return (
-    <p
-      role="note"
-      className={`rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ${className}`}
-    >
-      ⚠️ {text}
-    </p>
+    <Alert variant="warning" role="note" className={cn(className)}>
+      <TriangleAlert className="size-4" />
+      <AlertDescription>{text}</AlertDescription>
+    </Alert>
   );
 }

@@ -2,11 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import type { Locale } from "@/lib/i18n/config";
 import { ALLOWED_IMAGE_TYPES, EXTENSION_BY_TYPE, MAX_IMAGE_BYTES, type ImageMediaType } from "@/lib/image-validation";
-import { createClient } from "@/lib/supabase/client";
 import { AD_TEXT_MAX, PRODUCT_MAX } from "@/lib/validation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
 import { ImagePicker } from "./ImagePicker";
 
 type ErrorKey = keyof Dictionary["form"]["errors"];
@@ -27,6 +34,7 @@ export function CheckForm({
   const [file, setFile] = useState<File | null>(null);
   const [adText, setAdText] = useState("");
   const [product, setProduct] = useState("");
+  const [landingUrl, setLandingUrl] = useState("");
   const [error, setError] = useState<ErrorKey | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +44,7 @@ export function CheckForm({
     if (file.size > MAX_IMAGE_BYTES) return "imageSize";
     if (!adText.trim()) return "textRequired";
     if (!product.trim()) return "productRequired";
+    if (landingUrl.trim() && !/^https?:\/\/\S+$/i.test(landingUrl.trim())) return "invalidUrl";
     return null;
   }
 
@@ -62,7 +71,7 @@ export function CheckForm({
       const res = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagePath, adText, product, locale }),
+        body: JSON.stringify({ imagePath, adText, product, landingUrl: landingUrl.trim() || undefined, locale }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -79,57 +88,37 @@ export function CheckForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5 rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="text-xl font-semibold">{f.title}</h2>
-      <ImagePicker
-        file={file}
-        onChange={setFile}
-        label={f.image}
-        hint={f.imageHint}
-        chooseLabel={f.chooseImage}
-      />
-      <div>
-        <label htmlFor="adText" className="block text-sm font-medium">
-          {f.adText}
-        </label>
-        <textarea
-          id="adText"
-          dir="auto"
-          rows={5}
-          maxLength={AD_TEXT_MAX}
-          value={adText}
-          onChange={(e) => setAdText(e.target.value)}
-          placeholder={f.adTextPlaceholder}
-          className="mt-1 w-full rounded-lg border border-slate-300 p-3 focus:border-brand-500 focus:outline-none"
-        />
-      </div>
-      <div>
-        <label htmlFor="product" className="block text-sm font-medium">
-          {f.product}
-        </label>
-        <input
-          id="product"
-          dir="auto"
-          maxLength={PRODUCT_MAX}
-          value={product}
-          onChange={(e) => setProduct(e.target.value)}
-          placeholder={f.productPlaceholder}
-          className="mt-1 w-full rounded-lg border border-slate-300 p-3 focus:border-brand-500 focus:outline-none"
-        />
-      </div>
-      {error && (
-        <p role="alert" className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
-          {f.errors[error]}
-        </p>
-      )}
-      <button
-        type="submit"
-        disabled={loading || disabled}
-        className="w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
-      >
-        {loading ? f.submitting : f.submit}
-      </button>
-      <p className="text-center text-xs text-slate-500">{t.common.disclaimer}</p>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">{f.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-5" noValidate>
+          <ImagePicker file={file} onChange={setFile} label={f.image} hint={f.imageHint} chooseLabel={f.chooseImage} />
+          <div className="space-y-1.5">
+            <Label htmlFor="adText">{f.adText}</Label>
+            <Textarea id="adText" dir="auto" rows={5} maxLength={AD_TEXT_MAX} value={adText}
+              onChange={(e) => setAdText(e.target.value)} placeholder={f.adTextPlaceholder} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product">{f.product}</Label>
+            <Input id="product" dir="auto" maxLength={PRODUCT_MAX} value={product}
+              onChange={(e) => setProduct(e.target.value)} placeholder={f.productPlaceholder} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="landingUrl">{f.landingUrl}</Label>
+            <Input id="landingUrl" type="url" dir="ltr" inputMode="url" maxLength={2000} value={landingUrl}
+              onChange={(e) => setLandingUrl(e.target.value)} placeholder={f.landingUrlPlaceholder} />
+            <p className="text-xs text-muted-foreground">{f.landingUrlHint}</p>
+          </div>
+          {error && <Alert variant="destructive">{f.errors[error]}</Alert>}
+          <Button type="submit" size="lg" className="w-full" disabled={loading || disabled}>
+            {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+            {loading ? f.submitting : f.submit}
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">{t.common.disclaimer}</p>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

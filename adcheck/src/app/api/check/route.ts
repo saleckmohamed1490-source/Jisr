@@ -6,6 +6,7 @@ import { CheckFieldsSchema, parseLocale } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
 import { consumeCredit, refundCredit } from "@/lib/credits";
 import { defaultLocale } from "@/lib/i18n/config";
+import { fetchLandingPage } from "@/lib/analysis/landing-page";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { IMAGES_BUCKET } from "@/lib/supabase/env";
@@ -17,6 +18,7 @@ const BodySchema = z.object({
   imagePath: z.string().max(200),
   adText: z.string(),
   product: z.string(),
+  landingUrl: z.string().optional(),
   locale: z.string().optional(),
 });
 
@@ -64,11 +66,13 @@ export async function POST(req: NextRequest) {
 
   let result;
   try {
+    const landing = fields.data.landingUrl ? await fetchLandingPage(fields.data.landingUrl) : null;
     result = await analyzeAd({
-      image: { base64: Buffer.from(bytes).toString("base64"), mediaType: image.mediaType },
+      imageBytes: bytes,
       adText: fields.data.adText,
       product: fields.data.product,
       locale,
+      landing,
     });
   } catch (err) {
     console.error("[api/check]", err instanceof AnalysisError ? err.code : "unexpected", err);
@@ -84,6 +88,7 @@ export async function POST(req: NextRequest) {
       image_path: imagePath,
       ad_text: fields.data.adText,
       product_description: fields.data.product,
+      landing_url: fields.data.landingUrl ?? null,
       locale,
       verdict: analysis.verdict,
       risk_score: analysis.risk_score,

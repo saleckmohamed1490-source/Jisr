@@ -6,7 +6,7 @@ export type Verdict = (typeof VERDICTS)[number];
 export const IssueSchema = z.object({
   title: z.string().describe("Short name of the problem, in the report language"),
   severity: z.enum(["low", "medium", "high"]),
-  location: z.enum(["image", "text", "both", "product"]),
+  location: z.enum(["image", "text", "both", "product", "landing"]),
   policy: z
     .string()
     .describe("Name of the Meta advertising policy concerned, e.g. 'Personal attributes'"),

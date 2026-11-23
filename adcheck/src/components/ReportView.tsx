@@ -1,100 +1,102 @@
+import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import type { Analysis } from "@/lib/analysis/schema";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { CopyButton } from "./CopyButton";
 import { Disclaimer } from "./Disclaimer";
 
-const verdictStyles: Record<Analysis["verdict"], string> = {
-  compliant: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  medium_risk: "bg-amber-100 text-amber-800 border-amber-300",
-  non_compliant: "bg-red-100 text-red-800 border-red-300",
-};
-
-const severityStyles = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-amber-100 text-amber-800",
-  high: "bg-red-100 text-red-800",
-} as const;
+const verdictVariant = { compliant: "success", medium_risk: "warning", non_compliant: "destructive" } as const;
+const verdictIcon = { compliant: CheckCircle2, medium_risk: AlertTriangle, non_compliant: XCircle };
+const severityVariant = { low: "secondary", medium: "warning", high: "destructive" } as const;
 
 export function VerdictBadge({ verdict, t }: { verdict: Analysis["verdict"]; t: Dictionary["report"] }) {
+  const Icon = verdictIcon[verdict];
   return (
-    <span className={`inline-block rounded-full border px-3 py-1 text-sm font-semibold ${verdictStyles[verdict]}`}>
+    <Badge variant={verdictVariant[verdict]} className="gap-1 px-2.5 py-1 text-sm">
+      <Icon className="size-4" />
       {t.verdicts[verdict]}
-    </span>
+    </Badge>
   );
 }
 
 export function ReportView({ analysis, t }: { analysis: Analysis; t: Dictionary }) {
   const r = t.report;
+  const score = analysis.risk_score;
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">{r.verdict}</span>
-            <VerdictBadge verdict={analysis.verdict} t={r} />
+      <Card>
+        <CardContent className="space-y-4 pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{r.verdict}</span>
+              <VerdictBadge verdict={analysis.verdict} t={r} />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {r.riskScore}: <strong className="text-foreground" dir="ltr">{score}/100</strong>
+            </div>
           </div>
-          <div className="text-sm text-slate-600">
-            {r.riskScore}: <strong dir="ltr">{analysis.risk_score}/100</strong>
-          </div>
-        </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-          <div
-            className={`h-full ${analysis.risk_score >= 60 ? "bg-red-500" : analysis.risk_score >= 30 ? "bg-amber-500" : "bg-emerald-500"}`}
-            style={{ width: `${analysis.risk_score}%` }}
+          <Progress
+            value={score}
+            aria-label={r.riskScore}
+            indicatorClassName={score >= 60 ? "bg-red-500" : score >= 30 ? "bg-amber-500" : "bg-emerald-500"}
           />
-        </div>
-        <h3 className="mt-4 font-semibold">{r.summary}</h3>
-        <p className="mt-1 leading-7 text-slate-700">{analysis.summary}</p>
-      </section>
+          <div>
+            <h3 className="font-semibold">{r.summary}</h3>
+            <p className="mt-1 leading-7 text-slate-700">{analysis.summary}</p>
+          </div>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="text-lg font-semibold">{r.issues}</h3>
-        {analysis.issues.length === 0 ? (
-          <p className="mt-2 text-slate-600">{r.noIssues}</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {analysis.issues.map((issue, i) => (
-              <li key={i} className="rounded-lg border border-slate-200 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded px-2 py-0.5 text-xs font-medium ${severityStyles[issue.severity]}`}>
-                    {r.severity[issue.severity]}
-                  </span>
-                  <strong>{issue.title}</strong>
-                </div>
-                <p className="mt-2 leading-7 text-slate-700">{issue.explanation}</p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {r.policy}: <span className="font-medium text-slate-700">{issue.policy}</span> · {r.where}:{" "}
-                  {r.locations[issue.location]}
-                </p>
+      <Card>
+        <CardHeader><CardTitle className="text-lg">{r.issues}</CardTitle></CardHeader>
+        <CardContent>
+          {analysis.issues.length === 0 ? (
+            <p className="text-muted-foreground">{r.noIssues}</p>
+          ) : (
+            <ul className="space-y-3">
+              {analysis.issues.map((issue, i) => (
+                <li key={i} className="rounded-lg border p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={severityVariant[issue.severity]}>{r.severity[issue.severity]}</Badge>
+                    <strong>{issue.title}</strong>
+                  </div>
+                  <p className="mt-2 leading-7 text-slate-700">{issue.explanation}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {r.policy}: <span className="font-medium text-foreground">{issue.policy}</span> · {r.where}:{" "}
+                    {r.locations[issue.location]}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-lg">{r.suggestions}</CardTitle></CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {analysis.suggestions.map((s, i) => (
+              <li key={i} className="flex gap-3">
+                <Badge variant="secondary" className="mt-1 h-fit shrink-0">{r.targets[s.target]}</Badge>
+                <span className="leading-7 text-slate-700">{s.action}</span>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="text-lg font-semibold">{r.suggestions}</h3>
-        <ul className="mt-3 space-y-2">
-          {analysis.suggestions.map((s, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-0.5 shrink-0 rounded bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-                {r.targets[s.target]}
-              </span>
-              <span className="leading-7 text-slate-700">{s.action}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold">{r.rewritten}</h3>
+      <Card className="border-emerald-200 bg-emerald-50/50">
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-lg">{r.rewritten}</CardTitle>
           <CopyButton text={analysis.rewritten_text} label={t.common.copy} copiedLabel={t.common.copied} />
-        </div>
-        <p dir="auto" className="mt-3 whitespace-pre-wrap leading-7">
-          {analysis.rewritten_text}
-        </p>
-      </section>
+        </CardHeader>
+        <CardContent>
+          <p dir="auto" className="whitespace-pre-wrap leading-7">{analysis.rewritten_text}</p>
+        </CardContent>
+      </Card>
 
       <Disclaimer text={t.common.disclaimer} />
     </div>

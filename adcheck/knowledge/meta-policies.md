@@ -113,8 +113,19 @@ law**, and often **prior written permission or authorization** from Meta.
   or show minors.
 
 ### 3.8 Gambling, gaming, lotteries
-- Real-money gambling requires written permission and licences; targeting 18+.
-- Social casino games: allowed with restrictions, no implication of real-money winnings.
+- **Online real-money gambling** (casino, sports betting, poker, bingo, lotteries, fantasy sports with
+  cash prizes) requires Meta's **prior written permission** plus a valid licence in every targeted
+  country; target **18+** (or the higher legal age locally). Not allowed at all in many countries
+  (including most MENA countries).
+- **Social casino games** (no real-money payouts): allowed only to 18+ in most cases, and the ad must
+  not imply that players can win real money or cash out.
+- **Skill games, sweepstakes and contests**: must make clear that no purchase is necessary where
+  required by law, and link to official rules.
+- **Prohibited in gambling ads:** targeting minors, showing minors, portraying gambling as a way to
+  solve financial problems or become rich, "guaranteed wins", "risk-free bets" without clear terms,
+  bonuses with hidden conditions, implying social or sexual success from gambling, encouraging
+  excessive or irresponsible play.
+- Good practice: include "18+" and a responsible-gambling message where required locally.
 
 ### 3.9 Other restricted categories
 - Online/real-money gaming, sweepstakes, contests (must include official rules).
@@ -205,6 +216,30 @@ financial status, voting status, trade-union membership, criminal record, name.
   (alcohol, weight loss, dating) are prohibited.
 
 ---
+
+### 8.1 Sexual and suggestive content (detail)
+Meta prohibits adult nudity and sexual activity and restricts sexually suggestive content, even for
+legal products (lingerie, swimwear, cosmetics, perfume, dating, sexual-wellness).
+- **Prohibited:** nudity or implied nudity (covered with hands, sheets, pixelation, blur, emojis);
+  visible genitals, buttocks or female nipples; sexual acts or simulated acts; sex toys shown or
+  described; sexual innuendo in text ("satisfy her all night", "make him beg"); erotic poses or
+  camera angles focusing on breasts, buttocks, groin; partially undressed people in a sexual
+  context; content suggesting escort or adult services.
+- **Restricted / risky:** lingerie and swimwear are allowed when worn in a non-sexual, product-focused
+  way (standing pose, catalogue style, no zoom on intimate areas). Sexual-wellness and family-planning
+  products: allowed only with educational, non-sexual focus and 18+ targeting.
+- **Safer approach:** show the product itself, neutral poses, full-body catalogue shots, plain
+  descriptive copy.
+
+### 8.2 Shocking, violent and disturbing content (detail)
+- **Prohibited:** gore, blood, wounds, injuries, accidents, dead bodies or animals, graphic medical
+  procedures (surgery, injections, needles in skin), close-ups of diseases (fungus, rashes, parasites,
+  rotten teeth), bodily fluids, vomiting, excessive violence, weapons pointed at the viewer, scary or
+  horror imagery designed to shock, disrespectful use of tragedies or crises, imagery of terrorism.
+- **Also rejected:** "shock tactics" to grab attention (screaming faces, crying children in distress,
+  disgusting close-ups), fear-based messaging ("You will die if you don't…").
+- **Safer approach:** show the healthy result or the product, not the problem; use illustrations or
+  neutral imagery; calm, factual copy.
 
 ## 9. Landing page & business integrity (for context)
 

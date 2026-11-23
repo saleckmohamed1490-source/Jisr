@@ -7,6 +7,13 @@ export const PRODUCT_MAX = 1000;
 export const CheckFieldsSchema = z.object({
   adText: z.string().trim().min(1, "textRequired").max(AD_TEXT_MAX, "tooLong"),
   product: z.string().trim().min(1, "productRequired").max(PRODUCT_MAX, "tooLong"),
+  landingUrl: z
+    .string()
+    .trim()
+    .max(2000, "tooLong")
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || /^https?:\/\/[^\s]+$/i.test(v), "invalidUrl"),
 });
 
 export function parseLocale(value: unknown, fallback: Locale): Locale {
