@@ -20,6 +20,9 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dictionary;
               <Link href="/dashboard" className="rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700">
                 {t.nav.dashboard}
               </Link>
+              <Link href="/billing" className="hidden text-slate-600 hover:text-slate-900 sm:inline">
+                {t.nav.billing}
+              </Link>
               <form action={signOut}>
                 <button type="submit" className="text-slate-600 hover:text-slate-900">{t.nav.logout}</button>
               </form>
