@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function ImagePicker({
   file,
@@ -16,22 +16,25 @@ export function ImagePicker({
   chooseLabel: string;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
+  const urlRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!file) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  function select(next: File | null) {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    urlRef.current = next ? URL.createObjectURL(next) : null;
+    setPreview(urlRef.current);
+    onChange(next);
+  }
+
+  // Release the object URL when the component unmounts.
+  useEffect(() => () => {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+  }, []);
 
   return (
     <div>
       <span className="block text-sm font-medium">{label}</span>
       <label className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center hover:border-brand-500">
-        {preview ? (
+        {preview && file ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="" className="max-h-64 rounded-md object-contain" />
         ) : (
@@ -42,7 +45,7 @@ export function ImagePicker({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="sr-only"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => select(e.target.files?.[0] ?? null)}
         />
       </label>
     </div>
