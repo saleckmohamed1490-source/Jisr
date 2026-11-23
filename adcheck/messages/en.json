@@ -392,5 +392,46 @@
       "title": "Your plan has ended",
       "body": "Your {plan} plan has ended and your account is back on the Free plan. Renew at any time to get your credits back."
     }
+  },
+  "appeals": {
+    "title": "Appeal letters",
+    "subtitle": "Was your ad rejected? Get a professional review request to send.",
+    "new": "New appeal letter",
+    "empty": "No appeal letters yet.",
+    "newTitle": "Write an appeal letter",
+    "intro": "Paste the rejection reason you received. We write a clear, honest review request you can send from Account Quality or Ads Manager.",
+    "fromCheck": "The ad text and product were filled in from your check, and the report is used as context.",
+    "formTitle": "Rejection details",
+    "reason": "Rejection reason (paste it exactly)",
+    "reasonPlaceholder": "e.g. Your ad wasn't approved because it doesn't follow our Advertising Standards on personal attributes…",
+    "reasonHint": "You find it in Ads Manager or Account Quality, next to the rejected ad.",
+    "adText": "Ad text (optional)",
+    "product": "Product (optional)",
+    "changes": "What did you change? (optional)",
+    "changesPlaceholder": "e.g. Removed the question \"Are you overweight?\" and the before/after image.",
+    "letterLanguage": "Language of the letter",
+    "submit": "Write my appeal letter",
+    "generating": "Writing your letter…",
+    "left": "{n, plural, one {# appeal letter left} other {# appeal letters left}} in this cycle.",
+    "upgrade": "Upgrade",
+    "resultTitle": "Your appeal letter",
+    "subject": "Subject",
+    "letter": "Letter",
+    "tips": "How to submit it",
+    "viewCheck": "View the related check",
+    "assessment": {
+      "likely_mistaken": "The rejection looks like a mistake",
+      "unclear": "The rejection may be reviewed",
+      "likely_justified": "The rejection looks justified — fix the ad first"
+    },
+    "disclaimer": "An appeal does not guarantee that Meta will approve your ad. Fill in the [placeholders] before sending.",
+    "errors": {
+      "reasonRequired": "Paste the rejection reason (at least 10 characters).",
+      "tooLong": "The text is too long.",
+      "rateLimited": "Too many requests. Please wait a moment.",
+      "noAppealCredits": "You have no appeal letters left in your plan.",
+      "aiFailed": "The letter could not be written. No credit was used. Please try again.",
+      "unauthorized": "Please log in to continue."
+    }
   }
 }

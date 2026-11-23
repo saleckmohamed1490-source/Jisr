@@ -392,5 +392,46 @@
       "title": "Votre formule est terminée",
       "body": "Votre formule {plan} est terminée et votre compte est repassé en Gratuit. Renouvelez à tout moment pour récupérer vos crédits."
     }
+  },
+  "appeals": {
+    "title": "Lettres de contestation",
+    "subtitle": "Pub refusée ? Obtenez une demande de réexamen professionnelle, prête à envoyer.",
+    "new": "Nouvelle lettre",
+    "empty": "Aucune lettre pour l'instant.",
+    "newTitle": "Rédiger une lettre de contestation",
+    "intro": "Collez le motif de refus reçu. Nous rédigeons une demande de réexamen claire et honnête, à envoyer depuis Qualité du compte ou le Gestionnaire de publicités.",
+    "fromCheck": "Le texte et le produit proviennent de votre vérification, et le rapport sert de contexte.",
+    "formTitle": "Détails du refus",
+    "reason": "Motif du refus (collez-le tel quel)",
+    "reasonPlaceholder": "ex. Votre publicité n'a pas été approuvée car elle ne respecte pas nos Standards publicitaires sur les caractéristiques personnelles…",
+    "reasonHint": "Vous le trouvez dans le Gestionnaire de publicités ou Qualité du compte, à côté de la pub refusée.",
+    "adText": "Texte de la pub (facultatif)",
+    "product": "Produit (facultatif)",
+    "changes": "Qu'avez-vous modifié ? (facultatif)",
+    "changesPlaceholder": "ex. Suppression de la question « Vous êtes en surpoids ? » et de l'image avant/après.",
+    "letterLanguage": "Langue de la lettre",
+    "submit": "Rédiger ma lettre",
+    "generating": "Rédaction en cours…",
+    "left": "{n, plural, one {# lettre restante} other {# lettres restantes}} sur ce cycle.",
+    "upgrade": "Changer de formule",
+    "resultTitle": "Votre lettre de contestation",
+    "subject": "Objet",
+    "letter": "Lettre",
+    "tips": "Comment l'envoyer",
+    "viewCheck": "Voir la vérification liée",
+    "assessment": {
+      "likely_mistaken": "Le refus semble être une erreur",
+      "unclear": "Le refus pourrait être réexaminé",
+      "likely_justified": "Le refus semble justifié — corrigez d'abord la pub"
+    },
+    "disclaimer": "Une contestation ne garantit pas l'approbation de Meta. Complétez les [champs entre crochets] avant l'envoi.",
+    "errors": {
+      "reasonRequired": "Collez le motif du refus (10 caractères minimum).",
+      "tooLong": "Le texte est trop long.",
+      "rateLimited": "Trop de requêtes. Patientez un instant.",
+      "noAppealCredits": "Vous n'avez plus de lettres de contestation dans votre formule.",
+      "aiFailed": "La lettre n'a pas pu être rédigée. Aucun crédit utilisé. Réessayez.",
+      "unauthorized": "Veuillez vous connecter pour continuer."
+    }
   }
 }
