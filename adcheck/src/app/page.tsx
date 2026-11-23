@@ -13,7 +13,7 @@ export default async function Home() {
           <h1 className="text-4xl font-bold leading-tight sm:text-5xl">{l.heroTitle}</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">{l.heroSubtitle}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/check" className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700">
+            <Link href="/signup" className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700">
               {l.ctaPrimary}
             </Link>
             <Link href="#pricing" className="rounded-lg border border-slate-300 bg-white px-6 py-3 font-semibold hover:bg-slate-50">
@@ -51,7 +51,7 @@ export default async function Home() {
         </ul>
       </section>
 
-      <Pricing t={t} freeHref="/check" proHref="/check" />
+      <Pricing t={t} freeHref="/signup" proHref="/billing" />
     </>
   );
 }

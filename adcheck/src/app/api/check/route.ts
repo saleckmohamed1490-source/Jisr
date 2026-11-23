@@ -1,55 +1,95 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { analyzeAd, AnalysisError } from "@/lib/analysis/analyze";
 import { validateImageBytes } from "@/lib/image-validation";
 import { CheckFieldsSchema, parseLocale } from "@/lib/validation";
 import { memoryRateLimit } from "@/lib/rate-limit-memory";
 import { defaultLocale } from "@/lib/i18n/config";
+import { getUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { IMAGES_BUCKET } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+const BodySchema = z.object({
+  imagePath: z.string().max(200),
+  adText: z.string(),
+  product: z.string(),
+  locale: z.string().optional(),
+});
 
 function fail(error: string, status: number) {
   return NextResponse.json({ error }, { status });
 }
 
+/**
+ * The browser uploads the image straight to Supabase Storage (this avoids the
+ * ~4.5MB request-body limit of serverless functions) and then calls this
+ * route with the storage path.
+ */
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (!memoryRateLimit(`check:${ip}`, 5, 60_000)) return fail("rateLimited", 429);
+  const user = await getUser();
+  if (!user) return fail("unauthorized", 401);
 
-  let form: FormData;
-  try {
-    form = await req.formData();
-  } catch {
-    return fail("imageRequired", 400);
-  }
+  if (!memoryRateLimit(`check:${user.id}`, 5, 60_000)) return fail("rateLimited", 429);
 
-  const fields = CheckFieldsSchema.safeParse({
-    adText: form.get("adText") ?? "",
-    product: form.get("product") ?? "",
-  });
+  const body = BodySchema.safeParse(await req.json().catch(() => null));
+  if (!body.success) return fail("imageRequired", 400);
+
+  const fields = CheckFieldsSchema.safeParse(body.data);
   if (!fields.success) return fail(fields.error.issues[0].message, 400);
 
-  const file = form.get("image");
-  const bytes = file instanceof File ? new Uint8Array(await file.arrayBuffer()) : null;
+  // The image must live in the caller's own folder.
+  const { imagePath } = body.data;
+  const pathOk = new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(imagePath);
+  if (!pathOk) return fail("imageRequired", 400);
+
+  const admin = createAdminClient();
+  const { data: blob, error: dlError } = await admin.storage.from(IMAGES_BUCKET).download(imagePath);
+  if (dlError || !blob) return fail("imageRequired", 400);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
   const image = validateImageBytes(bytes);
-  if (!image.ok) return fail(image.error, 400);
+  if (!image.ok) {
+    await admin.storage.from(IMAGES_BUCKET).remove([imagePath]);
+    return fail(image.error, 400);
+  }
 
-  const locale = parseLocale(form.get("locale"), defaultLocale);
+  const locale = parseLocale(body.data.locale, defaultLocale);
 
+  let result;
   try {
-    const { analysis } = await analyzeAd({
-      image: { base64: Buffer.from(bytes!).toString("base64"), mediaType: image.mediaType },
+    result = await analyzeAd({
+      image: { base64: Buffer.from(bytes).toString("base64"), mediaType: image.mediaType },
       adText: fields.data.adText,
       product: fields.data.product,
       locale,
     });
-    return NextResponse.json({ analysis });
   } catch (err) {
-    if (err instanceof AnalysisError) {
-      console.error("[api/check]", err.code, err.message);
-      return fail("aiFailed", err.code === "not_configured" ? 503 : 502);
-    }
-    console.error("[api/check] unexpected", err);
+    console.error("[api/check]", err instanceof AnalysisError ? err.code : "unexpected", err);
+    return fail("aiFailed", 502);
+  }
+
+  const { analysis, model } = result;
+  const { data: row, error: insertError } = await admin
+    .from("checks")
+    .insert({
+      user_id: user.id,
+      image_path: imagePath,
+      ad_text: fields.data.adText,
+      product_description: fields.data.product,
+      locale,
+      verdict: analysis.verdict,
+      risk_score: analysis.risk_score,
+      report: analysis,
+      model,
+    })
+    .select("id")
+    .single<{ id: string }>();
+  if (insertError || !row) {
+    console.error("[api/check] insert failed", insertError);
     return fail("aiFailed", 500);
   }
+
+  return NextResponse.json({ id: row.id });
 }
