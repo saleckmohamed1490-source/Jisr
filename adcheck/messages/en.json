@@ -433,5 +433,40 @@
       "aiFailed": "The letter could not be written. No credit was used. Please try again.",
       "unauthorized": "Please log in to continue."
     }
+  },
+  "admin": {
+    "title": "Admin",
+    "users": "Users",
+    "activeSubscribers": "Active subscribers",
+    "revenueMonth": "Revenue this month",
+    "revenue30d": "Last 30 days: {amount}",
+    "pendingPayments": "Open payments",
+    "latestPayments": "Latest payments",
+    "manual": "manual",
+    "col": {
+      "date": "Date",
+      "user": "User",
+      "plan": "Plan",
+      "amount": "Amount",
+      "status": "Status",
+      "order": "Order"
+    },
+    "manualTitle": "Activate a subscription manually",
+    "manualHint": "For payment problems (e.g. an underpayment you accept). Enter an order ID to activate that payment, or leave it empty to record a manual activation.",
+    "email": "User e-mail",
+    "plan": "Plan",
+    "months": "Months",
+    "orderId": "Order ID (optional)",
+    "note": "Note (optional)",
+    "activate": "Activate",
+    "activated": "Activated for {email} until {date}.",
+    "errors": {
+      "forbidden": "Not allowed.",
+      "invalid": "Check the fields.",
+      "user_not_found": "No user with this e-mail.",
+      "order_not_found": "Order not found for this user.",
+      "already_active": "This payment was already activated.",
+      "failed": "Activation failed."
+    }
   }
 }

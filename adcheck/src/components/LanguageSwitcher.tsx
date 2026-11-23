@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
           router.replace(pathname, { locale: next });
         });
       }}
-      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+      className="h-8 w-[4.5rem] rounded-md border border-input bg-background px-1 text-sm sm:w-auto sm:px-2"
     >
       {routing.locales.map((l) => (
         <option key={l} value={l}>

@@ -7,7 +7,7 @@ import { dirOf, routing } from "@/i18n/routing";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getUser } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminEmail } from "@/lib/admin-data/is-admin";
 import { APP_NAME } from "@/lib/brand";
 import "../globals.css";
 

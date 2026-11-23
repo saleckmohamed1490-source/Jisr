@@ -171,7 +171,12 @@ export async function applyPaymentUpdate(providerName: string, u: PaymentUpdate)
   // The signed amount must match what we asked for (never trust the order alone).
   const expected = Number(pay.price_usd);
   if (u.priceCurrency !== "usd" || u.priceAmount === null || u.priceAmount + 0.001 < expected) {
-    await admin.from("payments").update({ note: `amount mismatch: got ${u.priceAmount} ${u.priceCurrency}` }).eq("id", pay.id);
+    // Not activated: show it as partially paid so the user contacts support and
+    // the admin sees it among open payments (and can activate it manually).
+    await admin
+      .from("payments")
+      .update({ status: "partially_paid", note: `amount mismatch: got ${u.priceAmount} ${u.priceCurrency}` })
+      .eq("id", pay.id);
     console.error("[payments] amount mismatch", pay.order_id, u.priceAmount, u.priceCurrency, expected);
     return "amount_mismatch";
   }

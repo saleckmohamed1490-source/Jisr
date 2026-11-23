@@ -433,5 +433,40 @@
       "aiFailed": "La lettre n'a pas pu être rédigée. Aucun crédit utilisé. Réessayez.",
       "unauthorized": "Veuillez vous connecter pour continuer."
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Utilisateurs",
+    "activeSubscribers": "Abonnés actifs",
+    "revenueMonth": "Revenus ce mois-ci",
+    "revenue30d": "30 derniers jours : {amount}",
+    "pendingPayments": "Paiements en cours",
+    "latestPayments": "Derniers paiements",
+    "manual": "manuel",
+    "col": {
+      "date": "Date",
+      "user": "Utilisateur",
+      "plan": "Formule",
+      "amount": "Montant",
+      "status": "Statut",
+      "order": "Commande"
+    },
+    "manualTitle": "Activer un abonnement manuellement",
+    "manualHint": "En cas de problème de paiement (ex. un paiement partiel accepté). Saisissez un n° de commande pour activer ce paiement, ou laissez vide pour une activation manuelle.",
+    "email": "E-mail de l'utilisateur",
+    "plan": "Formule",
+    "months": "Mois",
+    "orderId": "N° de commande (facultatif)",
+    "note": "Note (facultatif)",
+    "activate": "Activer",
+    "activated": "Activé pour {email} jusqu'au {date}.",
+    "errors": {
+      "forbidden": "Non autorisé.",
+      "invalid": "Vérifiez les champs.",
+      "user_not_found": "Aucun utilisateur avec cet e-mail.",
+      "order_not_found": "Commande introuvable pour cet utilisateur.",
+      "already_active": "Ce paiement a déjà été activé.",
+      "failed": "Échec de l'activation."
+    }
   }
 }
