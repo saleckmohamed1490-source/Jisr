@@ -178,23 +178,29 @@
     "writeAppeal": "Write an appeal"
   },
   "billing": {
-    "title": "Subscription",
+    "title": "Subscription & invoices",
     "currentPlan": "Current plan",
-    "status": "Status",
-    "statuses": {
-      "active": "Active",
-      "on_trial": "Trial",
-      "past_due": "Payment past due",
-      "cancelled": "Cancelled (active until period end)",
-      "expired": "Expired",
-      "paused": "Paused",
-      "unpaid": "Unpaid"
+    "activeUntil": "Active until {date}",
+    "noSubscription": "You are on the Free plan.",
+    "seePlans": "See plans",
+    "renew": "Renew / extend",
+    "extendNote": "Paying while subscribed adds the new period to the end of your current one.",
+    "invoices": "Invoices",
+    "noInvoices": "No payments yet.",
+    "col": {
+      "date": "Date",
+      "number": "No.",
+      "plan": "Plan",
+      "amount": "Amount",
+      "paid": "Paid",
+      "status": "Status",
+      "tx": "Transaction",
+      "invoice": "Invoice"
     },
-    "subscribe": "Subscribe for $6/month",
-    "manage": "Manage subscription",
-    "success": "Thank you! Your subscription is being activated — credits will appear in a few seconds.",
-    "renews": "Credits renew on {date}",
-    "notConfigured": "Payments are not configured yet."
+    "viewTx": "View",
+    "viewInvoice": "Receipt",
+    "continuePayment": "Continue payment",
+    "months": "{months, plural, one {# month} other {# months}}"
   },
   "footer": {
     "pricing": "Pricing",
@@ -255,5 +261,139 @@
     "popular": "Most popular",
     "cryptoNote": "No card needed: pay with the crypto you already have. Not sure how?",
     "howTo": "See how to pay from Binance"
+  },
+  "paymentStatus": {
+    "pending": "Waiting for payment",
+    "waiting": "Waiting for payment",
+    "confirming": "Payment detected — confirming on the blockchain",
+    "confirmed": "Confirmed on the blockchain",
+    "sending": "Being processed",
+    "partially_paid": "Partially paid",
+    "finished": "Paid",
+    "failed": "Failed",
+    "refunded": "Refunded",
+    "expired": "Expired"
+  },
+  "checkout": {
+    "title": "Pay with crypto",
+    "summary": "Order summary",
+    "plan": "Plan",
+    "duration": "Duration",
+    "total": "Total",
+    "changePlan": "Change plan or duration",
+    "chooseCoin": "Choose the coin you will pay with",
+    "network": "Network",
+    "networkWarning": "Send on exactly this network. Funds sent on another network can be lost.",
+    "pay": "Pay {amount} with crypto",
+    "redirectNote": "You will be redirected to our payment partner NOWPayments to complete the payment, then back here.",
+    "extendNote": "You already have an active {plan} plan until {date}. This payment adds the new period to the end of it.",
+    "switchNote": "You have an active {current} plan until {date}. Buying {plan} switches you now and keeps your remaining time.",
+    "cancelled": "Payment cancelled. You can try again whenever you are ready.",
+    "errors": {
+      "not_configured": "Crypto payments are not configured yet. Please contact support.",
+      "provider": "We could not create the invoice. Please try again in a minute.",
+      "invalid": "Please choose a coin.",
+      "rate": "Too many attempts. Please wait a minute."
+    },
+    "howTo": "First time paying with crypto? Read the step-by-step guide."
+  },
+  "status": {
+    "title": "Payment status",
+    "order": "Order",
+    "autoRefresh": "This page updates automatically.",
+    "finishedTitle": "Payment received — your plan is active!",
+    "finishedBody": "Your {plan} plan is active until {date}. A confirmation e-mail with your invoice is on its way.",
+    "goDashboard": "Go to dashboard",
+    "waitingBody": "Complete the payment on the NOWPayments page. Blockchain confirmations can take a few minutes.",
+    "openInvoice": "Open payment page",
+    "partialTitle": "Partial payment received",
+    "partialBody": "We received {paid} {coin} out of {expected} {coin}. Your plan is not activated yet. Send the remaining {remaining} {coin} from the payment page, or contact support with your order number.",
+    "contactSupport": "Contact support",
+    "failedBody": "This payment did not complete. No plan was activated. You can start a new payment.",
+    "refundedBody": "This payment was refunded.",
+    "tryAgain": "Start a new payment",
+    "notFound": "Payment not found."
+  },
+  "invoice": {
+    "title": "Invoice #{number}",
+    "issued": "Issued on {date}",
+    "billedTo": "Billed to",
+    "description": "Description",
+    "line": "{plan} plan — {months, plural, one {# month} other {# months}}",
+    "total": "Total",
+    "paidWith": "Paid with",
+    "validUntil": "Subscription valid until",
+    "txHash": "Transaction",
+    "print": "Print / Save as PDF",
+    "status": "Status"
+  },
+  "howToPay": {
+    "title": "How to pay with crypto",
+    "intro": "Never paid with crypto? Here is the simplest way, using Binance. It takes about 5 minutes. USDT on the TRC20 network is usually the cheapest option.",
+    "steps": [
+      {
+        "title": "Get USDT on Binance",
+        "body": "Create a Binance account and buy USDT (with a card, bank transfer or P2P). Keep it in your Spot wallet."
+      },
+      {
+        "title": "Choose your plan here",
+        "body": "On our pricing page choose a plan and duration, select “USDT — TRC20” and click “Pay with crypto”."
+      },
+      {
+        "title": "Copy the address and amount",
+        "body": "The payment page shows a wallet address and the exact amount to send. Keep this page open."
+      },
+      {
+        "title": "Withdraw from Binance",
+        "body": "In Binance: Wallet → Spot → Withdraw → USDT. Paste the address and pick the SAME network shown on the payment page (TRX / TRC20)."
+      },
+      {
+        "title": "Send the exact amount",
+        "body": "Binance deducts its network fee from the amount you enter. Make sure the “Receive amount” is at least the amount on the payment page."
+      },
+      {
+        "title": "Confirm and wait",
+        "body": "Confirm with your 2FA code. After a few minutes the payment page — and your status page here — shows “Paid” and your plan is activated automatically."
+      }
+    ],
+    "tipsTitle": "Important",
+    "tips": [
+      "Always use the network shown on the payment page. Sending on another network can lose the funds.",
+      "Send in a single transaction. If you send less, the payment shows as “Partially paid” and the plan is not activated until the rest arrives.",
+      "Invoices expire after a while. If yours expires, simply start a new payment.",
+      "Problem with a payment? Contact support with your order number."
+    ],
+    "cta": "See plans"
+  },
+  "emails": {
+    "footer": "You receive this e-mail because you have an account on {app}.",
+    "support": "Questions? Contact us at {email}.",
+    "invoice": {
+      "number": "Invoice",
+      "date": "Date",
+      "plan": "Plan",
+      "months": "{months, plural, one {# month} other {# months}}",
+      "amount": "Amount",
+      "paidWith": "Paid with",
+      "validUntil": "Valid until"
+    },
+    "paid": {
+      "subject": "{app} — payment received (invoice #{number})",
+      "title": "Thank you, your payment is confirmed",
+      "body": "Your {plan} plan is now active until {date}.",
+      "viewInvoice": "View invoice"
+    },
+    "reminder": {
+      "subject": "{app} — your plan ends in {days, plural, one {# day} other {# days}}",
+      "title": "Your plan ends in {days, plural, one {# day} other {# days}}",
+      "body": "Your {plan} plan ends on {date}. Renew now to keep your credits and history without interruption.",
+      "cta": "Renew my plan",
+      "note": "If you renew before the end date, the new period is added to your current one."
+    },
+    "expired": {
+      "subject": "{app} — your plan has ended",
+      "title": "Your plan has ended",
+      "body": "Your {plan} plan has ended and your account is back on the Free plan. Renew at any time to get your credits back."
+    }
   }
 }

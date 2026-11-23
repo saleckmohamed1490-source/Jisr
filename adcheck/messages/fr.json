@@ -178,23 +178,29 @@
     "writeAppeal": "Rédiger une contestation"
   },
   "billing": {
-    "title": "Abonnement",
+    "title": "Abonnement et factures",
     "currentPlan": "Formule actuelle",
-    "status": "Statut",
-    "statuses": {
-      "active": "Actif",
-      "on_trial": "Essai",
-      "past_due": "Paiement en retard",
-      "cancelled": "Annulé (actif jusqu'à la fin de la période)",
-      "expired": "Expiré",
-      "paused": "En pause",
-      "unpaid": "Impayé"
+    "activeUntil": "Active jusqu'au {date}",
+    "noSubscription": "Vous êtes sur la formule Gratuite.",
+    "seePlans": "Voir les formules",
+    "renew": "Renouveler / prolonger",
+    "extendNote": "Si vous payez pendant votre abonnement, la nouvelle période s'ajoute à la fin de l'actuelle.",
+    "invoices": "Factures",
+    "noInvoices": "Aucun paiement pour l'instant.",
+    "col": {
+      "date": "Date",
+      "number": "N°",
+      "plan": "Formule",
+      "amount": "Montant",
+      "paid": "Payé",
+      "status": "Statut",
+      "tx": "Transaction",
+      "invoice": "Facture"
     },
-    "subscribe": "S'abonner pour 6 $/mois",
-    "manage": "Gérer l'abonnement",
-    "success": "Merci ! Votre abonnement est en cours d'activation — les crédits apparaîtront dans quelques secondes.",
-    "renews": "Crédits renouvelés le {date}",
-    "notConfigured": "Les paiements ne sont pas encore configurés."
+    "viewTx": "Voir",
+    "viewInvoice": "Reçu",
+    "continuePayment": "Continuer le paiement",
+    "months": "{months, plural, one {# mois} other {# mois}}"
   },
   "footer": {
     "pricing": "Tarifs",
@@ -255,5 +261,139 @@
     "popular": "Le plus choisi",
     "cryptoNote": "Pas besoin de carte : payez avec la crypto que vous avez déjà. Vous ne savez pas comment ?",
     "howTo": "Voir comment payer depuis Binance"
+  },
+  "paymentStatus": {
+    "pending": "En attente de paiement",
+    "waiting": "En attente de paiement",
+    "confirming": "Paiement détecté — confirmation sur la blockchain",
+    "confirmed": "Confirmé sur la blockchain",
+    "sending": "En cours de traitement",
+    "partially_paid": "Partiellement payé",
+    "finished": "Payé",
+    "failed": "Échoué",
+    "refunded": "Remboursé",
+    "expired": "Expiré"
+  },
+  "checkout": {
+    "title": "Payer en crypto",
+    "summary": "Récapitulatif",
+    "plan": "Formule",
+    "duration": "Durée",
+    "total": "Total",
+    "changePlan": "Changer de formule ou de durée",
+    "chooseCoin": "Choisissez la crypto avec laquelle vous payez",
+    "network": "Réseau",
+    "networkWarning": "Envoyez exactement sur ce réseau. Des fonds envoyés sur un autre réseau peuvent être perdus.",
+    "pay": "Payer {amount} en crypto",
+    "redirectNote": "Vous serez redirigé vers notre partenaire de paiement NOWPayments, puis de retour ici.",
+    "extendNote": "Vous avez déjà une formule {plan} active jusqu'au {date}. Ce paiement ajoute la nouvelle période à la fin.",
+    "switchNote": "Vous avez une formule {current} active jusqu'au {date}. Acheter {plan} vous y fait passer maintenant en conservant le temps restant.",
+    "cancelled": "Paiement annulé. Vous pouvez réessayer quand vous voulez.",
+    "errors": {
+      "not_configured": "Les paiements crypto ne sont pas encore configurés. Contactez le support.",
+      "provider": "Impossible de créer la facture. Réessayez dans une minute.",
+      "invalid": "Choisissez une crypto.",
+      "rate": "Trop de tentatives. Patientez une minute."
+    },
+    "howTo": "Première fois en crypto ? Lisez le guide pas à pas."
+  },
+  "status": {
+    "title": "Statut du paiement",
+    "order": "Commande",
+    "autoRefresh": "Cette page se met à jour automatiquement.",
+    "finishedTitle": "Paiement reçu — votre formule est active !",
+    "finishedBody": "Votre formule {plan} est active jusqu'au {date}. Un e-mail de confirmation avec votre facture arrive.",
+    "goDashboard": "Aller au tableau de bord",
+    "waitingBody": "Finalisez le paiement sur la page NOWPayments. Les confirmations blockchain peuvent prendre quelques minutes.",
+    "openInvoice": "Ouvrir la page de paiement",
+    "partialTitle": "Paiement partiel reçu",
+    "partialBody": "Nous avons reçu {paid} {coin} sur {expected} {coin}. Votre formule n'est pas encore activée. Envoyez les {remaining} {coin} restants depuis la page de paiement, ou contactez le support avec votre numéro de commande.",
+    "contactSupport": "Contacter le support",
+    "failedBody": "Ce paiement n'a pas abouti. Aucune formule n'a été activée. Vous pouvez lancer un nouveau paiement.",
+    "refundedBody": "Ce paiement a été remboursé.",
+    "tryAgain": "Nouveau paiement",
+    "notFound": "Paiement introuvable."
+  },
+  "invoice": {
+    "title": "Facture n° {number}",
+    "issued": "Émise le {date}",
+    "billedTo": "Facturé à",
+    "description": "Description",
+    "line": "Formule {plan} — {months, plural, one {# mois} other {# mois}}",
+    "total": "Total",
+    "paidWith": "Payé avec",
+    "validUntil": "Abonnement valable jusqu'au",
+    "txHash": "Transaction",
+    "print": "Imprimer / Enregistrer en PDF",
+    "status": "Statut"
+  },
+  "howToPay": {
+    "title": "Comment payer en crypto",
+    "intro": "Jamais payé en crypto ? Voici la méthode la plus simple, avec Binance. Comptez environ 5 minutes. L'USDT sur le réseau TRC20 est généralement le moins cher.",
+    "steps": [
+      {
+        "title": "Obtenez des USDT sur Binance",
+        "body": "Créez un compte Binance et achetez des USDT (carte, virement ou P2P). Gardez-les dans votre portefeuille Spot."
+      },
+      {
+        "title": "Choisissez votre formule ici",
+        "body": "Sur notre page Tarifs, choisissez une formule et une durée, sélectionnez « USDT — TRC20 » puis cliquez sur « Payer en crypto »."
+      },
+      {
+        "title": "Copiez l'adresse et le montant",
+        "body": "La page de paiement affiche une adresse et le montant exact à envoyer. Gardez-la ouverte."
+      },
+      {
+        "title": "Retirez depuis Binance",
+        "body": "Dans Binance : Portefeuille → Spot → Retirer → USDT. Collez l'adresse et choisissez le MÊME réseau que sur la page de paiement (TRX / TRC20)."
+      },
+      {
+        "title": "Envoyez le bon montant",
+        "body": "Binance déduit ses frais de réseau du montant saisi. Vérifiez que le « montant reçu » est au moins égal au montant de la page de paiement."
+      },
+      {
+        "title": "Confirmez et patientez",
+        "body": "Confirmez avec votre code 2FA. Après quelques minutes, la page de paiement — et votre page de statut ici — indique « Payé » et votre formule est activée automatiquement."
+      }
+    ],
+    "tipsTitle": "Important",
+    "tips": [
+      "Utilisez toujours le réseau indiqué sur la page de paiement. Un autre réseau peut faire perdre les fonds.",
+      "Envoyez en une seule transaction. Si vous envoyez moins, le paiement apparaît « Partiellement payé » et la formule n'est activée qu'à réception du reste.",
+      "Les factures expirent au bout d'un moment. Si la vôtre expire, lancez simplement un nouveau paiement.",
+      "Un problème ? Contactez le support avec votre numéro de commande."
+    ],
+    "cta": "Voir les formules"
+  },
+  "emails": {
+    "footer": "Vous recevez cet e-mail car vous avez un compte sur {app}.",
+    "support": "Des questions ? Écrivez-nous à {email}.",
+    "invoice": {
+      "number": "Facture",
+      "date": "Date",
+      "plan": "Formule",
+      "months": "{months, plural, one {# mois} other {# mois}}",
+      "amount": "Montant",
+      "paidWith": "Payé avec",
+      "validUntil": "Valable jusqu'au"
+    },
+    "paid": {
+      "subject": "{app} — paiement reçu (facture n° {number})",
+      "title": "Merci, votre paiement est confirmé",
+      "body": "Votre formule {plan} est active jusqu'au {date}.",
+      "viewInvoice": "Voir la facture"
+    },
+    "reminder": {
+      "subject": "{app} — votre formule se termine dans {days, plural, one {# jour} other {# jours}}",
+      "title": "Votre formule se termine dans {days, plural, one {# jour} other {# jours}}",
+      "body": "Votre formule {plan} se termine le {date}. Renouvelez maintenant pour garder vos crédits et votre historique sans interruption.",
+      "cta": "Renouveler ma formule",
+      "note": "Si vous renouvelez avant la date de fin, la nouvelle période s'ajoute à l'actuelle."
+    },
+    "expired": {
+      "subject": "{app} — votre formule est terminée",
+      "title": "Votre formule est terminée",
+      "body": "Votre formule {plan} est terminée et votre compte est repassé en Gratuit. Renouvelez à tout moment pour récupérer vos crédits."
+    }
   }
 }

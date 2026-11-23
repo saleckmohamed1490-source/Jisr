@@ -15,6 +15,14 @@ const RULES = {
     { suffix: "1m", windowSeconds: 60, limit: () => envInt("RATE_LIMIT_IMAGES_PER_MINUTE", 3) },
     { suffix: "1h", windowSeconds: 3600, limit: () => envInt("RATE_LIMIT_IMAGES_PER_HOUR", 15) },
   ],
+  appeal: [
+    { suffix: "1m", windowSeconds: 60, limit: () => envInt("RATE_LIMIT_APPEALS_PER_MINUTE", 3) },
+    { suffix: "1h", windowSeconds: 3600, limit: () => envInt("RATE_LIMIT_APPEALS_PER_HOUR", 20) },
+  ],
+  checkout: [
+    { suffix: "1m", windowSeconds: 60, limit: () => 5 },
+    { suffix: "1h", windowSeconds: 3600, limit: () => 20 },
+  ],
 } as const;
 
 /**
