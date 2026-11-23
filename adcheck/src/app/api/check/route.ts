@@ -3,7 +3,8 @@ import { z } from "zod";
 import { analyzeAd, AnalysisError } from "@/lib/analysis/analyze";
 import { validateImageBytes } from "@/lib/image-validation";
 import { CheckFieldsSchema, parseLocale } from "@/lib/validation";
-import { memoryRateLimit } from "@/lib/rate-limit-memory";
+import { rateLimit } from "@/lib/rate-limit";
+import { consumeCredit, refundCredit } from "@/lib/credits";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return fail("unauthorized", 401);
 
-  if (!memoryRateLimit(`check:${user.id}`, 5, 60_000)) return fail("rateLimited", 429);
+  if (!(await rateLimit(user.id, "check"))) return fail("rateLimited", 429);
 
   const body = BodySchema.safeParse(await req.json().catch(() => null));
   if (!body.success) return fail("imageRequired", 400);
@@ -57,6 +58,10 @@ export async function POST(req: NextRequest) {
 
   const locale = parseLocale(body.data.locale, defaultLocale);
 
+  // Deduct the credit BEFORE calling the AI (atomic in the DB, so parallel
+  // requests can't overspend), and refund it if anything below fails.
+  if (!(await consumeCredit(user.id, "check"))) return fail("noCredits", 402);
+
   let result;
   try {
     result = await analyzeAd({
@@ -67,6 +72,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[api/check]", err instanceof AnalysisError ? err.code : "unexpected", err);
+    await refundCredit(user.id, "check");
     return fail("aiFailed", 502);
   }
 
@@ -88,6 +94,7 @@ export async function POST(req: NextRequest) {
     .single<{ id: string }>();
   if (insertError || !row) {
     console.error("[api/check] insert failed", insertError);
+    await refundCredit(user.id, "check");
     return fail("aiFailed", 500);
   }
 
