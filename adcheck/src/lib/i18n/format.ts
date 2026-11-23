@@ -8,6 +8,11 @@ export function formatDate(value: string | Date, locale: string, withTime = fals
   }).format(new Date(value));
 }
 
-export function formatUsd(amount: number, locale: string): string {
-  return new Intl.NumberFormat(intlLocale[locale] ?? locale, { style: "currency", currency: "USD" }).format(amount);
+export function formatUsd(amount: number, locale: string, opts: { compact?: boolean } = {}): string {
+  const whole = opts.compact && Number.isInteger(amount);
+  return new Intl.NumberFormat(intlLocale[locale] ?? locale, {
+    style: "currency",
+    currency: "USD",
+    ...(whole ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {}),
+  }).format(amount);
 }

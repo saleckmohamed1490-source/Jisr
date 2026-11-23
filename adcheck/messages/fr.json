@@ -28,37 +28,103 @@
     "admin": "Admin"
   },
   "landing": {
-    "heroTitle": "Faites approuver vos pubs Facebook et Instagram du premier coup",
-    "heroSubtitle": "Importez l'image et le texte de votre pub. AdCheck les analyse en quelques secondes selon les règles publicitaires de Meta, explique chaque risque et réécrit votre annonce pour la rendre conforme.",
+    "badge": "Pour les annonceurs Facebook et Instagram",
+    "heroTitle": "Faites approuver vos pubs du premier coup",
+    "heroSubtitle": "Importez l'image, le texte et la page de destination de votre pub. En quelques secondes, {app} repère ce que la vérification de Meta risque de refuser, explique pourquoi, réécrit votre texte et peut créer une image conforme.",
     "ctaPrimary": "Vérifier une pub gratuitement",
     "ctaSecondary": "Voir les tarifs",
+    "freeNote": "3 vérifications gratuites · sans carte",
+    "preview": {
+      "verdict": "Non conforme",
+      "score": "Risque 78/100",
+      "issue1": "Caractéristiques personnelles — « Vous êtes en surpoids ? »",
+      "issue2": "Allégation irréaliste — « -10 kg en 7 jours »",
+      "rewrite": "Réécriture : « Découvrez une tisane qui accompagne votre routine saine. »"
+    },
     "howTitle": "Comment ça marche",
     "steps": [
       {
-        "title": "Importez",
-        "body": "Ajoutez l'image de la pub, son texte et une courte description du produit."
+        "title": "Importez votre pub",
+        "body": "Image, texte, courte description du produit et (en option) l'URL de votre page de destination."
       },
       {
         "title": "Analyse IA",
-        "body": "Notre IA lit l'image et le texte ensemble en s'appuyant sur une base de connaissances des règles de Meta."
+        "body": "Notre IA lit l'image et le texte ensemble, à partir d'un résumé à jour des standards publicitaires de Meta."
       },
       {
         "title": "Corrigez et publiez",
-        "body": "Obtenez un verdict clair, les règles concernées, des corrections concrètes et une version conforme."
+        "body": "Obtenez un verdict, un score de risque de 0 à 100, les règles concernées, des corrections et une version conforme."
       }
     ],
-    "featuresTitle": "Ce que nous vérifions",
+    "featuresTitle": "Tout pour arrêter de perdre des jours de diffusion",
     "features": [
-      "Caractéristiques personnelles (« Êtes-vous en surpoids ? »)",
+      {
+        "title": "Rapport de conformité",
+        "body": "Verdict, score de risque et chaque violation potentielle avec la règle concernée."
+      },
+      {
+        "title": "Réécriture conforme",
+        "body": "Un texte prêt à coller qui garde votre message et retire les parties à risque."
+      },
+      {
+        "title": "Vérification de la page",
+        "body": "Nous comparons votre page à la pub : même produit, même prix, aucune allégation interdite."
+      },
+      {
+        "title": "Images IA conformes",
+        "body": "Générez une nouvelle image qui évite les problèmes détectés dans l'originale."
+      },
+      {
+        "title": "Lettres de contestation",
+        "body": "Refusée quand même ? Collez le motif et obtenez une demande de réexamen professionnelle et honnête."
+      },
+      {
+        "title": "Espaces clients",
+        "body": "Les agences séparent les vérifications de chaque client, jusqu'à 5 espaces."
+      }
+    ],
+    "checksTitle": "Ce que nous vérifions",
+    "checks": [
+      "Caractéristiques personnelles (« Vous êtes gros ? », « Fiché à la banque ? »)",
       "Images avant/après et image corporelle",
       "Allégations exagérées, médicales ou garanties",
-      "Catégories restreintes : santé, minceur, crypto, prêts, rencontres, alcool",
+      "Santé, minceur, crypto, crédits, rencontres, alcool, jeux d'argent",
       "Marques et logos de tiers",
-      "Trop de texte sur l'image"
-    ]
+      "Contenu sexuel, choquant ou dérangeant",
+      "Trop de texte sur l'image",
+      "Incohérence entre la pub et la page de destination"
+    ],
+    "cryptoTitle": "Payez en crypto, où que vous soyez",
+    "cryptoBody": "USDT (TRC20, BEP20, ERC20), USDC, BTC, ETH, BNB, LTC et TRX. Aucune carte ni compte bancaire requis.",
+    "cryptoCta": "Comment payer depuis Binance",
+    "faqTitle": "Questions fréquentes",
+    "faq": [
+      {
+        "q": "{app} garantit-il l'approbation de ma pub ?",
+        "a": "Non. Il réduit le risque de refus en détectant les problèmes les plus courants, mais Meta décide en dernier ressort."
+      },
+      {
+        "q": "{app} est-il affilié à Meta ?",
+        "a": "Non. {app} est un outil indépendant ; sa base de connaissances résume les standards publicitaires publics de Meta."
+      },
+      {
+        "q": "Quelles langues sont prises en charge ?",
+        "a": "L'interface et les rapports existent en français, anglais et arabe, et nous analysons des pubs rédigées dans n'importe quelle langue."
+      },
+      {
+        "q": "Que se passe-t-il à la fin de ma formule ?",
+        "a": "Nous vous envoyons un rappel 3 jours et 1 jour avant. Sans renouvellement, votre compte repasse en Gratuit et votre historique est conservé."
+      },
+      {
+        "q": "Puis-je prolonger avant la fin ?",
+        "a": "Oui. Payer pendant l'abonnement ajoute la nouvelle période à la fin de l'actuelle."
+      }
+    ],
+    "finalTitle": "Vérifiez votre prochaine pub avant Meta",
+    "finalCta": "Commencer gratuitement"
   },
   "auth": {
-    "loginTitle": "Connexion à AdCheck",
+    "loginTitle": "Connexion à {app}",
     "signupTitle": "Créez votre compte",
     "email": "E-mail",
     "password": "Mot de passe",

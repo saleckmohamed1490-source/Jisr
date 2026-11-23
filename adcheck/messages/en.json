@@ -28,37 +28,103 @@
     "admin": "Admin"
   },
   "landing": {
-    "heroTitle": "Get your Facebook & Instagram ads approved the first time",
-    "heroSubtitle": "Upload your ad image and copy. AdCheck reviews them against Meta's advertising policies in seconds, explains each risk and rewrites your ad so it complies.",
+    "badge": "For Facebook & Instagram advertisers",
+    "heroTitle": "Get your ads approved the first time",
+    "heroSubtitle": "Upload your ad image, copy and landing page. In seconds {app} flags what Meta's ad review is likely to reject, explains why, rewrites your copy and can create a compliant image.",
     "ctaPrimary": "Check an ad for free",
     "ctaSecondary": "See pricing",
+    "freeNote": "3 free checks · no card needed",
+    "preview": {
+      "verdict": "Not compliant",
+      "score": "Risk 78/100",
+      "issue1": "Personal attributes — “Are you overweight?”",
+      "issue2": "Unrealistic claim — “Lose 10 kg in 7 days”",
+      "rewrite": "Rewrite: “Discover a herbal tea that fits your healthy routine.”"
+    },
     "howTitle": "How it works",
     "steps": [
       {
-        "title": "Upload",
-        "body": "Add your ad image, the ad text and a short product description."
+        "title": "Upload your ad",
+        "body": "Image, ad copy, a short product description and (optionally) your landing page URL."
       },
       {
         "title": "AI review",
-        "body": "Our AI reads the image and text together against a knowledge base of Meta's ad policies."
+        "body": "Our AI reads the image and text together against an up-to-date summary of Meta's advertising standards."
       },
       {
         "title": "Fix & publish",
-        "body": "Get a clear verdict, the policies at risk, concrete edits and a compliant rewrite."
+        "body": "Get a verdict, a 0–100 risk score, the policies at risk, concrete edits and a compliant rewrite."
       }
     ],
-    "featuresTitle": "What we check",
+    "featuresTitle": "Everything you need to stop wasting ad days",
     "features": [
-      "Personal attributes (\"Are you overweight?\")",
+      {
+        "title": "Compliance report",
+        "body": "Verdict, risk score and each potential violation with the policy it relates to."
+      },
+      {
+        "title": "Compliant rewrite",
+        "body": "Ready-to-paste ad copy that keeps your message and removes the risky parts."
+      },
+      {
+        "title": "Landing page check",
+        "body": "We compare your page with the ad: same product, same price, no prohibited claims."
+      },
+      {
+        "title": "Compliant AI images",
+        "body": "Generate a new ad image that avoids the issues found in your original."
+      },
+      {
+        "title": "Appeal letters",
+        "body": "Rejected anyway? Paste the reason and get a professional, honest review request."
+      },
+      {
+        "title": "Client workspaces",
+        "body": "Agencies keep each client's checks separate, with up to 5 workspaces."
+      }
+    ],
+    "checksTitle": "What we check",
+    "checks": [
+      "Personal attributes (“Are you fat?”, “Bad credit?”)",
       "Before/after images and body-image issues",
       "Exaggerated, medical or guaranteed claims",
-      "Restricted categories: health, weight loss, crypto, loans, dating, alcohol",
+      "Health, weight loss, crypto, loans, dating, alcohol, gambling",
       "Third-party brands and trademarks",
-      "Too much text on the image"
-    ]
+      "Sexual, shocking or disturbing content",
+      "Too much text on the image",
+      "Mismatch between ad and landing page"
+    ],
+    "cryptoTitle": "Pay with crypto, from anywhere",
+    "cryptoBody": "USDT (TRC20, BEP20, ERC20), USDC, BTC, ETH, BNB, LTC and TRX. No card or bank account needed.",
+    "cryptoCta": "How to pay from Binance",
+    "faqTitle": "Questions",
+    "faq": [
+      {
+        "q": "Does {app} guarantee my ad will be approved?",
+        "a": "No. It reduces the chance of rejection by catching the most common problems, but Meta makes the final decision."
+      },
+      {
+        "q": "Is {app} affiliated with Meta?",
+        "a": "No. {app} is an independent tool. Its knowledge base is a summary of Meta's public advertising standards."
+      },
+      {
+        "q": "Which languages are supported?",
+        "a": "The interface and reports are available in English, Arabic and French, and we can review ads written in any language."
+      },
+      {
+        "q": "What happens when my plan ends?",
+        "a": "We send you a reminder 3 days and 1 day before. If you don't renew, your account goes back to the Free plan. Your history stays."
+      },
+      {
+        "q": "Can I extend my plan before it ends?",
+        "a": "Yes. Paying while subscribed adds the new period to the end of your current one."
+      }
+    ],
+    "finalTitle": "Check your next ad before Meta does",
+    "finalCta": "Start free"
   },
   "auth": {
-    "loginTitle": "Log in to AdCheck",
+    "loginTitle": "Log in to {app}",
     "signupTitle": "Create your account",
     "email": "Email",
     "password": "Password",

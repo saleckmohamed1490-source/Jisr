@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { APP_NAME } from "@/lib/brand";
 
 export function AuthForm({ mode, next, oauthError }: { mode: "login" | "signup"; next?: string; oauthError?: boolean }) {
   const a = useTranslations("auth");
@@ -21,7 +22,7 @@ export function AuthForm({ mode, next, oauthError }: { mode: "login" | "signup";
     <div className="mx-auto max-w-md px-4 py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{mode === "login" ? a("loginTitle") : a("signupTitle")}</CardTitle>
+          <CardTitle className="text-2xl">{mode === "login" ? a("loginTitle", { app: APP_NAME }) : a("signupTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={signInWithGoogle}>

@@ -69,7 +69,7 @@ export function PricingTable({ signedIn, currentPlan }: { signedIn: boolean; cur
                 <CardTitle className="text-xl">{tp(`${plan}.name`)}</CardTitle>
                 <p className="text-sm text-muted-foreground">{tp(`${plan}.tagline`)}</p>
                 <p className="pt-2">
-                  <span className="text-4xl font-bold" dir="ltr">{formatUsd(Math.round(perMonth * 100) / 100, locale).replace(/\.00$/, "")}</span>{" "}
+                  <span className="text-4xl font-bold" dir="ltr">{formatUsd(Math.round(perMonth * 100) / 100, locale, { compact: true })}</span>{" "}
                   <span className="text-muted-foreground">{t("perMonth")}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
