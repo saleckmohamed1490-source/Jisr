@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/i18n/config";
+import type { Locale } from "@/i18n/routing";
 import type { Analysis } from "./schema";
 
 /** Canned report used when AI_MOCK=1 so the UI can be developed without an API key. */

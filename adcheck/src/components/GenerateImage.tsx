@@ -1,32 +1,35 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { useTranslations } from "next-intl";
+import { Download, ImagePlus, Loader2 } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
 
 type Img = { id: string; url: string };
 type ErrKey = "imageProOnly" | "noImageCredits" | "imageFailed" | "rateLimited";
+const KNOWN: ErrKey[] = ["imageProOnly", "noImageCredits", "imageFailed", "rateLimited"];
 
 export function GenerateImage({
   checkId,
   initial,
-  isPro,
+  canGenerate,
   imageCredits,
-  t,
 }: {
   checkId: string;
   initial: Img[];
-  isPro: boolean;
+  canGenerate: boolean;
   imageCredits: number;
-  t: Dictionary;
 }) {
-  const r = t.report;
+  const r = useTranslations("report");
+  const tf = useTranslations("form");
+  const td = useTranslations("dashboard");
   const [images, setImages] = useState<Img[]>(initial);
   const [credits, setCredits] = useState(imageCredits);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrKey | null>(null);
-
-  const message = (e: ErrKey) => (e === "rateLimited" ? t.form.errors.rateLimited : r[e]);
 
   async function generate() {
     setLoading(true);
@@ -35,8 +38,7 @@ export function GenerateImage({
       const res = await fetch(`/api/checks/${checkId}/image`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const known: ErrKey[] = ["imageProOnly", "noImageCredits", "imageFailed", "rateLimited"];
-        setError(known.includes(data.error) ? data.error : "imageFailed");
+        setError(KNOWN.includes(data.error) ? data.error : "imageFailed");
         return;
       }
       setImages((prev) => [{ id: data.id, url: data.url }, ...prev]);
@@ -49,40 +51,36 @@ export function GenerateImage({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold">{r.generatedImages}</h3>
-        {isPro ? (
-          <button
-            type="button"
-            onClick={generate}
-            disabled={loading || credits <= 0}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
-          >
-            {loading ? r.generating : `${r.generateImage} (${credits})`}
-          </button>
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+        <CardTitle className="text-lg">{r("generatedImages")}</CardTitle>
+        {canGenerate ? (
+          <Button onClick={generate} disabled={loading || credits <= 0}>
+            {loading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+            {loading ? r("generating") : `${r("generateImage")} (${credits})`}
+          </Button>
         ) : (
-          <Link href="/billing" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-            {t.dashboard.upgrade}
-          </Link>
+          <Button asChild><Link href="/pricing">{td("upgrade")}</Link></Button>
         )}
-      </div>
-      {!isPro && <p className="mt-2 text-sm text-slate-600">{r.imageProOnly}</p>}
-      {isPro && credits <= 0 && !loading && <p className="mt-2 text-sm text-slate-600">{r.noImageCredits}</p>}
-      {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message(error)}</p>}
-      {images.length > 0 && (
-        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {images.map((img) => (
-            <li key={img.id} className="space-y-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt="" className="w-full rounded-lg border border-slate-200" />
-              <a href={img.url} download target="_blank" rel="noreferrer" className="text-sm font-medium text-brand-600 hover:underline">
-                {r.download}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!canGenerate && <p className="text-sm text-muted-foreground">{r("imageProOnly")}</p>}
+        {canGenerate && credits <= 0 && !loading && <p className="text-sm text-muted-foreground">{r("noImageCredits")}</p>}
+        {error && <Alert variant="destructive">{error === "rateLimited" ? tf("errors.rateLimited") : r(error)}</Alert>}
+        {images.length > 0 && (
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {images.map((img) => (
+              <li key={img.id} className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt="" className="w-full rounded-lg border" />
+                <Button asChild variant="outline" size="sm">
+                  <a href={img.url} download target="_blank" rel="noreferrer"><Download />{r("download")}</a>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

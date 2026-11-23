@@ -1,7 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import type { Locale } from "@/lib/i18n/config";
+import type { Locale } from "@/i18n/routing";
 import { AnalysisSchema, normalizeAnalysis, type Analysis } from "./schema";
 import { buildSystemPrompt, buildUserPrompt, type LandingInfo } from "./prompt";
 import { prepareImageForModel } from "./prepare-image";

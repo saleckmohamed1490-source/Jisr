@@ -1,36 +1,38 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { setLocale } from "@/lib/i18n/actions";
-import { localeNames, locales, type Locale } from "@/lib/i18n/config";
+import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { localeNames, routing, type Locale } from "@/i18n/routing";
+import { saveLocalePreference } from "@/lib/auth/actions";
 
-export function LanguageSwitcher({ current, label }: { current: Locale; label: string }) {
+export function LanguageSwitcher() {
+  const t = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
   return (
-    <label className="flex items-center gap-1 text-sm">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        value={current}
-        disabled={pending}
-        onChange={(e) => {
-          const next = e.target.value;
-          startTransition(async () => {
-            await setLocale(next);
-            router.refresh();
-          });
-        }}
-        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
-      >
-        {locales.map((l) => (
-          <option key={l} value={l}>
-            {localeNames[l]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <select
+      aria-label={t("language")}
+      value={locale}
+      disabled={pending}
+      onChange={(e) => {
+        const next = e.target.value as Locale;
+        startTransition(async () => {
+          // Remember the choice on the account (used for e-mails); ignored when signed out.
+          await saveLocalePreference(next).catch(() => {});
+          router.replace(pathname, { locale: next });
+        });
+      }}
+      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+    >
+      {routing.locales.map((l) => (
+        <option key={l} value={l}>
+          {localeNames[l]}
+        </option>
+      ))}
+    </select>
   );
 }

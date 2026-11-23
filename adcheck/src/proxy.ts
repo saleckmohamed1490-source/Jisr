@@ -1,15 +1,33 @@
+import createIntlMiddleware from "next-intl/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { routing } from "@/i18n/routing";
 
-const PROTECTED = ["/dashboard", "/reports", "/billing"];
+const intl = createIntlMiddleware(routing);
+
+const PROTECTED = ["/dashboard", "/check", "/reports", "/appeals", "/billing", "/admin"];
 const AUTH_PAGES = ["/login", "/signup"];
 
+/** "/ar/dashboard" -> { locale: "ar", path: "/dashboard" } */
+function splitLocale(pathname: string): { prefix: string; path: string } {
+  const first = pathname.split("/")[1];
+  if ((routing.locales as readonly string[]).includes(first) && first !== routing.defaultLocale) {
+    return { prefix: `/${first}`, path: pathname.slice(first.length + 1) || "/" };
+  }
+  return { prefix: "", path: pathname };
+}
+
 /**
- * Refreshes the Supabase session cookie on every request and guards private
- * pages. (Next.js 16 renamed `middleware` to `proxy`.)
+ * Next.js 16 `proxy` (formerly middleware):
+ * 1. next-intl resolves the locale and rewrites/redirects the URL;
+ * 2. the Supabase session cookie is refreshed on that same response;
+ * 3. private pages require a signed-in user.
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const response = intl(request);
+
+  // next-intl may answer with a redirect (e.g. to the visitor's language).
+  if (response.headers.get("location")) return response;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -21,9 +39,10 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+          response.cookies.set(name, value, options);
+        });
       },
     },
   });
@@ -32,25 +51,22 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) {
-    const login = request.nextUrl.clone();
-    login.pathname = "/login";
-    login.search = `?next=${encodeURIComponent(path)}`;
-    return NextResponse.redirect(login);
-  }
-  if (user && AUTH_PAGES.includes(path)) {
-    const dash = request.nextUrl.clone();
-    dash.pathname = "/dashboard";
-    dash.search = "";
-    return NextResponse.redirect(dash);
-  }
+  const { prefix, path } = splitLocale(request.nextUrl.pathname);
+  const redirectTo = (target: string) => {
+    const dest = request.nextUrl.clone();
+    dest.pathname = `${prefix}${target}`;
+    dest.search = target.startsWith("/login") ? `?next=${encodeURIComponent(path)}` : "";
+    const res = NextResponse.redirect(dest);
+    response.cookies.getAll().forEach((c) => res.cookies.set(c));
+    return res;
+  };
+
+  if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) return redirectTo("/login");
+  if (user && AUTH_PAGES.includes(path)) return redirectTo("/dashboard");
   return response;
 }
 
 export const config = {
-  matcher: [
-    // Everything except static files, images and API webhooks.
-    "/((?!_next/static|_next/image|favicon.ico|api/billing/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  // Pages only: skip API routes, the auth callback, Next internals and files with an extension.
+  matcher: ["/((?!api|auth|_next|_vercel|.*\\..*).*)"],
 };

@@ -5,7 +5,7 @@ import { validateImageBytes } from "@/lib/image-validation";
 import { CheckFieldsSchema, parseLocale } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
 import { consumeCredit, refundCredit } from "@/lib/credits";
-import { defaultLocale } from "@/lib/i18n/config";
+import { routing } from "@/i18n/routing";
 import { fetchLandingPage } from "@/lib/analysis/landing-page";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     return fail(image.error, 400);
   }
 
-  const locale = parseLocale(body.data.locale, defaultLocale);
+  const locale = parseLocale(body.data.locale, routing.defaultLocale);
 
   // Deduct the credit BEFORE calling the AI (atomic in the DB, so parallel
   // requests can't overspend), and refund it if anything below fails.

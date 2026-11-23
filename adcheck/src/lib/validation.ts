@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isLocale, type Locale } from "@/lib/i18n/config";
+import { isLocale, type Locale } from "@/i18n/routing";
 
 export const AD_TEXT_MAX = 3000;
 export const PRODUCT_MAX = 1000;

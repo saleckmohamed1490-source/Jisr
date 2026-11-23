@@ -1,7 +1,7 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { Locale } from "@/lib/i18n/config";
+import type { Locale } from "@/i18n/routing";
 
 const LANGUAGE_NAMES: Record<Locale, string> = {
   ar: "Arabic (Modern Standard Arabic)",

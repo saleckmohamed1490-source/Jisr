@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
-import type { Dictionary } from "@/lib/i18n/dictionaries/en";
-import type { Locale } from "@/lib/i18n/config";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import type messages from "../../messages/en.json";
 import { ALLOWED_IMAGE_TYPES, EXTENSION_BY_TYPE, MAX_IMAGE_BYTES, type ImageMediaType } from "@/lib/image-validation";
 import { AD_TEXT_MAX, PRODUCT_MAX } from "@/lib/validation";
 import { createClient } from "@/lib/supabase/client";
@@ -16,20 +16,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { ImagePicker } from "./ImagePicker";
 
-type ErrorKey = keyof Dictionary["form"]["errors"];
+type ErrorKey = keyof (typeof messages)["form"]["errors"];
+const ERROR_KEYS = new Set(["imageRequired","imageType","imageSize","textRequired","productRequired","invalidUrl","tooLong","rateLimited","noCredits","unauthorized","aiFailed"]);
 
-export function CheckForm({
-  t,
-  locale,
-  userId,
-  disabled = false,
-}: {
-  t: Dictionary;
-  locale: Locale;
-  userId: string;
-  disabled?: boolean;
-}) {
-  const f = t.form;
+export function CheckForm({ userId, disabled = false }: { userId: string; disabled?: boolean }) {
+  const f = useTranslations("form");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [adText, setAdText] = useState("");
@@ -75,7 +68,7 @@ export function CheckForm({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data.error as ErrorKey) in f.errors ? (data.error as ErrorKey) : "aiFailed");
+        setError(ERROR_KEYS.has(data.error) ? (data.error as ErrorKey) : "aiFailed");
         return;
       }
       router.push(`/reports/${data.id}`);
@@ -90,33 +83,33 @@ export function CheckForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">{f.title}</CardTitle>
+        <CardTitle className="text-xl">{f("title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-5" noValidate>
-          <ImagePicker file={file} onChange={setFile} label={f.image} hint={f.imageHint} chooseLabel={f.chooseImage} />
+          <ImagePicker file={file} onChange={setFile} label={f("image")} hint={f("imageHint")} chooseLabel={f("chooseImage")} />
           <div className="space-y-1.5">
-            <Label htmlFor="adText">{f.adText}</Label>
+            <Label htmlFor="adText">{f("adText")}</Label>
             <Textarea id="adText" dir="auto" rows={5} maxLength={AD_TEXT_MAX} value={adText}
-              onChange={(e) => setAdText(e.target.value)} placeholder={f.adTextPlaceholder} />
+              onChange={(e) => setAdText(e.target.value)} placeholder={f("adTextPlaceholder")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="product">{f.product}</Label>
+            <Label htmlFor="product">{f("product")}</Label>
             <Input id="product" dir="auto" maxLength={PRODUCT_MAX} value={product}
-              onChange={(e) => setProduct(e.target.value)} placeholder={f.productPlaceholder} />
+              onChange={(e) => setProduct(e.target.value)} placeholder={f("productPlaceholder")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="landingUrl">{f.landingUrl}</Label>
+            <Label htmlFor="landingUrl">{f("landingUrl")}</Label>
             <Input id="landingUrl" type="url" dir="ltr" inputMode="url" maxLength={2000} value={landingUrl}
-              onChange={(e) => setLandingUrl(e.target.value)} placeholder={f.landingUrlPlaceholder} />
-            <p className="text-xs text-muted-foreground">{f.landingUrlHint}</p>
+              onChange={(e) => setLandingUrl(e.target.value)} placeholder={f("landingUrlPlaceholder")} />
+            <p className="text-xs text-muted-foreground">{f("landingUrlHint")}</p>
           </div>
-          {error && <Alert variant="destructive">{f.errors[error]}</Alert>}
+          {error && <Alert variant="destructive">{f(`errors.${error}`)}</Alert>}
           <Button type="submit" size="lg" className="w-full" disabled={loading || disabled}>
             {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
-            {loading ? f.submitting : f.submit}
+            {loading ? f("submitting") : f("submit")}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">{t.common.disclaimer}</p>
+          <p className="text-center text-xs text-muted-foreground">{tc("disclaimer")}</p>
         </form>
       </CardContent>
     </Card>

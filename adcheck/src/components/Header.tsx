@@ -1,41 +1,37 @@
-import Link from "next/link";
-import type { Locale } from "@/lib/i18n/config";
-import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { signOut } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { Logo } from "./Logo";
 
-export function Header({ locale, t, signedIn }: { locale: Locale; t: Dictionary; signedIn: boolean }) {
+export function Header({ signedIn, isAdmin = false }: { signedIn: boolean; isAdmin?: boolean }) {
+  const t = useTranslations("nav");
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="text-lg font-bold text-brand-700">
-          {t.common.appName}
+    <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <Link href="/" className="flex items-center gap-2">
+          <Logo />
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
-          <Link href="/#pricing" className="hidden text-slate-600 hover:text-slate-900 sm:inline">
-            {t.nav.pricing}
-          </Link>
+        <nav className="flex items-center gap-1 text-sm sm:gap-3">
+          <Link href="/pricing" className="hidden px-2 text-muted-foreground hover:text-foreground md:inline">{t("pricing")}</Link>
           {signedIn ? (
             <>
-              <Link href="/dashboard" className="rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700">
-                {t.nav.dashboard}
-              </Link>
-              <Link href="/billing" className="hidden text-slate-600 hover:text-slate-900 sm:inline">
-                {t.nav.billing}
-              </Link>
+              <Link href="/appeals" className="hidden px-2 text-muted-foreground hover:text-foreground md:inline">{t("appeals")}</Link>
+              <Link href="/billing" className="hidden px-2 text-muted-foreground hover:text-foreground md:inline">{t("billing")}</Link>
+              {isAdmin && <Link href="/admin" className="hidden px-2 text-muted-foreground hover:text-foreground md:inline">{t("admin")}</Link>}
+              <Button asChild size="sm"><Link href="/dashboard">{t("dashboard")}</Link></Button>
               <form action={signOut}>
-                <button type="submit" className="text-slate-600 hover:text-slate-900">{t.nav.logout}</button>
+                <Button type="submit" variant="ghost" size="sm">{t("logout")}</Button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-slate-600 hover:text-slate-900">{t.nav.login}</Link>
-              <Link href="/signup" className="rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700">
-                {t.nav.signup}
-              </Link>
+              <Button asChild variant="ghost" size="sm"><Link href="/login">{t("login")}</Link></Button>
+              <Button asChild size="sm"><Link href="/signup">{t("signup")}</Link></Button>
             </>
           )}
-          <LanguageSwitcher current={locale} label={t.common.language} />
+          <LanguageSwitcher />
         </nav>
       </div>
     </header>

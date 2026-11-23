@@ -1,0 +1,219 @@
+{
+  "meta": {
+    "title": "{app} — Vérifiez vos pubs selon les règles publicitaires avant de publier",
+    "description": "Importez l'image et le texte de votre publicité. L'IA les vérifie selon les règles publicitaires de Meta (Facebook et Instagram) et propose des corrections conformes."
+  },
+  "common": {
+    "disclaimer": "Cet outil réduit le risque de refus mais ne garantit pas l'approbation de Meta.",
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "back": "Retour",
+    "copy": "Copier",
+    "copied": "Copié",
+    "language": "Langue",
+    "notFound": "Cette page est introuvable.",
+    "home": "Retour à l'accueil"
+  },
+  "nav": {
+    "home": "Accueil",
+    "pricing": "Tarifs",
+    "dashboard": "Tableau de bord",
+    "newCheck": "Nouvelle vérification",
+    "history": "Historique",
+    "billing": "Abonnement",
+    "login": "Se connecter",
+    "signup": "S'inscrire",
+    "logout": "Se déconnecter",
+    "appeals": "Contestations",
+    "admin": "Admin"
+  },
+  "landing": {
+    "heroTitle": "Faites approuver vos pubs Facebook et Instagram du premier coup",
+    "heroSubtitle": "Importez l'image et le texte de votre pub. AdCheck les analyse en quelques secondes selon les règles publicitaires de Meta, explique chaque risque et réécrit votre annonce pour la rendre conforme.",
+    "ctaPrimary": "Vérifier une pub gratuitement",
+    "ctaSecondary": "Voir les tarifs",
+    "howTitle": "Comment ça marche",
+    "steps": [
+      {
+        "title": "Importez",
+        "body": "Ajoutez l'image de la pub, son texte et une courte description du produit."
+      },
+      {
+        "title": "Analyse IA",
+        "body": "Notre IA lit l'image et le texte ensemble en s'appuyant sur une base de connaissances des règles de Meta."
+      },
+      {
+        "title": "Corrigez et publiez",
+        "body": "Obtenez un verdict clair, les règles concernées, des corrections concrètes et une version conforme."
+      }
+    ],
+    "featuresTitle": "Ce que nous vérifions",
+    "features": [
+      "Caractéristiques personnelles (« Êtes-vous en surpoids ? »)",
+      "Images avant/après et image corporelle",
+      "Allégations exagérées, médicales ou garanties",
+      "Catégories restreintes : santé, minceur, crypto, prêts, rencontres, alcool",
+      "Marques et logos de tiers",
+      "Trop de texte sur l'image"
+    ]
+  },
+  "pricing": {
+    "title": "Des tarifs simples",
+    "perMonth": "/ mois",
+    "free": {
+      "name": "Gratuit",
+      "price": "0 $",
+      "features": [
+        "3 vérifications à l'inscription",
+        "Rapport de conformité complet",
+        "Réécriture conforme du texte"
+      ],
+      "cta": "Commencer gratuitement"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "6 $",
+      "features": [
+        "100 vérifications par mois",
+        "25 images conformes générées par IA par mois",
+        "Historique complet de vos vérifications",
+        "Crédits renouvelés chaque mois"
+      ],
+      "cta": "S'abonner"
+    }
+  },
+  "auth": {
+    "loginTitle": "Connexion à AdCheck",
+    "signupTitle": "Créez votre compte",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "loginButton": "Se connecter",
+    "signupButton": "Créer le compte",
+    "google": "Continuer avec Google",
+    "or": "ou",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "checkEmail": "Vérifiez votre boîte mail pour confirmer votre adresse, puis connectez-vous.",
+    "invalidCredentials": "E-mail ou mot de passe incorrect.",
+    "passwordHint": "Au moins 8 caractères.",
+    "genericError": "L'authentification a échoué. Veuillez réessayer."
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "credits": "Vos crédits",
+    "checksLeft": "Vérifications restantes",
+    "imagesLeft": "Images restantes",
+    "plan": "Formule",
+    "planFree": "Gratuite",
+    "planPro": "Pro",
+    "renewsOn": "Renouvellement le {date}",
+    "upgrade": "Passer à Pro",
+    "noCredits": "Vous n'avez plus de vérifications. Passez à Pro pour continuer.",
+    "historyTitle": "Vérifications précédentes",
+    "historyEmpty": "Aucune vérification pour l'instant. Lancez la première ci-dessus.",
+    "viewReport": "Voir le rapport"
+  },
+  "form": {
+    "title": "Nouvelle vérification",
+    "image": "Image de la pub",
+    "imageHint": "JPG, PNG ou WEBP — 10 Mo max",
+    "chooseImage": "Choisir une image",
+    "adText": "Texte de la pub (texte principal / titre)",
+    "adTextPlaceholder": "Collez le texte de votre publicité…",
+    "product": "Courte description du produit",
+    "productPlaceholder": "ex. Tisane pour faciliter la digestion, vendue en ligne au Maroc",
+    "landingUrl": "URL de la page de destination (facultatif)",
+    "landingUrlPlaceholder": "https://votre-boutique.com/produit",
+    "landingUrlHint": "Nous vérifions que votre page correspond à la pub.",
+    "submit": "Vérifier ma pub",
+    "submitting": "Analyse de votre pub…",
+    "errors": {
+      "imageRequired": "Veuillez choisir une image.",
+      "imageType": "Seules les images JPG, PNG ou WEBP sont acceptées.",
+      "imageSize": "L'image doit faire 10 Mo maximum.",
+      "textRequired": "Veuillez saisir le texte de la pub.",
+      "productRequired": "Veuillez décrire le produit.",
+      "invalidUrl": "Saisissez une URL valide commençant par http:// ou https://",
+      "tooLong": "Le texte est trop long.",
+      "rateLimited": "Trop de requêtes. Patientez un instant puis réessayez.",
+      "noCredits": "Vous n'avez plus de vérifications.",
+      "unauthorized": "Veuillez vous connecter pour continuer.",
+      "aiFailed": "L'analyse a échoué. Aucun crédit n'a été utilisé. Veuillez réessayer."
+    }
+  },
+  "report": {
+    "title": "Rapport de conformité",
+    "verdict": "Verdict",
+    "verdicts": {
+      "compliant": "Conforme",
+      "medium_risk": "Risque moyen",
+      "non_compliant": "Non conforme"
+    },
+    "riskScore": "Score de risque",
+    "summary": "Résumé",
+    "issues": "Violations potentielles",
+    "noIssues": "Aucune violation détectée.",
+    "policy": "Règle Meta",
+    "where": "Emplacement",
+    "locations": {
+      "image": "Image",
+      "text": "Texte",
+      "both": "Image + texte",
+      "product": "Produit",
+      "landing": "Page de destination"
+    },
+    "severity": {
+      "low": "Faible",
+      "medium": "Moyenne",
+      "high": "Élevée"
+    },
+    "suggestions": "Corrections suggérées",
+    "targets": {
+      "image": "Image",
+      "text": "Texte",
+      "targeting": "Ciblage",
+      "general": "Général"
+    },
+    "rewritten": "Version conforme du texte de votre pub",
+    "originalAd": "Votre pub",
+    "createdAt": "Vérifié le {date}",
+    "generateImage": "Créer une image conforme pour moi",
+    "generating": "Génération de l'image… (jusqu'à une minute)",
+    "generatedImages": "Images générées",
+    "download": "Télécharger",
+    "imageProOnly": "La génération d'images est disponible avec la formule Pro.",
+    "noImageCredits": "Vous n'avez plus de crédits d'images ce mois-ci.",
+    "imageFailed": "La génération de l'image a échoué. Aucun crédit n'a été utilisé.",
+    "newCheck": "Vérifier une autre pub",
+    "notFound": "Rapport introuvable.",
+    "writeAppeal": "Rédiger une contestation"
+  },
+  "billing": {
+    "title": "Abonnement",
+    "currentPlan": "Formule actuelle",
+    "status": "Statut",
+    "statuses": {
+      "active": "Actif",
+      "on_trial": "Essai",
+      "past_due": "Paiement en retard",
+      "cancelled": "Annulé (actif jusqu'à la fin de la période)",
+      "expired": "Expiré",
+      "paused": "En pause",
+      "unpaid": "Impayé"
+    },
+    "subscribe": "S'abonner pour 6 $/mois",
+    "manage": "Gérer l'abonnement",
+    "success": "Merci ! Votre abonnement est en cours d'activation — les crédits apparaîtront dans quelques secondes.",
+    "renews": "Crédits renouvelés le {date}",
+    "notConfigured": "Les paiements ne sont pas encore configurés."
+  },
+  "footer": {
+    "pricing": "Tarifs",
+    "howToPay": "Comment payer en crypto",
+    "support": "Contacter le support",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "refund": "Politique de remboursement",
+    "notAffiliated": "Non affilié à Meta Platforms, Inc., ni approuvé ou sponsorisé par elle."
+  }
+}

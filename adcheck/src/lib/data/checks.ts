@@ -13,6 +13,7 @@ export type CheckSummary = {
 
 export type CheckDetail = CheckSummary & {
   product_description: string;
+  landing_url: string | null;
   image_path: string;
   report: Analysis;
   locale: string;
@@ -35,7 +36,7 @@ export async function getCheck(id: string): Promise<CheckDetail | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("checks")
-    .select("id, verdict, risk_score, ad_text, product_description, image_path, report, locale, created_at")
+    .select("id, verdict, risk_score, ad_text, product_description, landing_url, image_path, report, locale, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
