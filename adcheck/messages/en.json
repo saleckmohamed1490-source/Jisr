@@ -57,31 +57,6 @@
       "Too much text on the image"
     ]
   },
-  "pricing": {
-    "title": "Simple pricing",
-    "perMonth": "/ month",
-    "free": {
-      "name": "Free",
-      "price": "$0",
-      "features": [
-        "3 ad checks on sign-up",
-        "Full compliance report",
-        "Compliant text rewrite"
-      ],
-      "cta": "Start free"
-    },
-    "pro": {
-      "name": "Pro",
-      "price": "$6",
-      "features": [
-        "100 ad checks every month",
-        "25 AI-generated compliant images every month",
-        "Full history of your checks",
-        "Credits renew every month"
-      ],
-      "cta": "Subscribe"
-    }
-  },
   "auth": {
     "loginTitle": "Log in to AdCheck",
     "signupTitle": "Create your account",
@@ -111,7 +86,21 @@
     "noCredits": "You have no checks left. Upgrade to continue.",
     "historyTitle": "Previous checks",
     "historyEmpty": "No checks yet. Run your first check above.",
-    "viewReport": "View report"
+    "viewReport": "View report",
+    "appealsLeft": "Appeals left",
+    "unlimited": "Unlimited",
+    "fairUse": "fair use",
+    "subscriptionEnds": "Plan active until {date}",
+    "creditsRenew": "Credits renew on {date}",
+    "renew": "Renew",
+    "workspaces": "Workspaces",
+    "allWorkspaces": "All",
+    "newWorkspace": "New workspace",
+    "workspaceName": "Client name",
+    "create": "Create",
+    "workspaceLimit": "You have reached the workspace limit of your plan.",
+    "workspaceNameError": "Enter a name (1–60 characters).",
+    "workspaceFor": "Workspace"
   },
   "form": {
     "title": "New ad check",
@@ -215,5 +204,56 @@
     "privacy": "Privacy policy",
     "refund": "Refund policy",
     "notAffiliated": "Not affiliated with, endorsed or sponsored by Meta Platforms, Inc."
+  },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "tagline": "Try it on your next ad"
+    },
+    "starter": {
+      "name": "Starter",
+      "tagline": "For small stores"
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "For active advertisers"
+    },
+    "agency": {
+      "name": "Agency",
+      "tagline": "For agencies with several clients"
+    },
+    "features": {
+      "checksOnce": "{n} ad checks on sign-up",
+      "checks": "{n} ad checks / 30 days",
+      "checksUnlimited": "Unlimited ad checks (fair use: {n} / 30 days)",
+      "images": "{n} compliant AI images / 30 days",
+      "noImages": "No image generation",
+      "appeals": "{n} appeal letters / 30 days",
+      "appealsUnlimited": "Unlimited appeal letters",
+      "noAppeals": "No appeal letters",
+      "workspaces": "Up to {n} client workspaces",
+      "everythingPro": "Everything in Pro",
+      "landing": "Landing page check",
+      "history": "Full check history"
+    }
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Pay with crypto (USDT, USDC, BTC, ETH, BNB, LTC, TRX). Credits renew every 30 days.",
+    "perMonth": "/ month",
+    "durations": {
+      "1": "1 month",
+      "3": "3 months",
+      "12": "12 months"
+    },
+    "save": "2 months free",
+    "billed": "{total} billed for {months} months",
+    "billedOnce": "{total} billed once",
+    "choose": "Choose {plan}",
+    "startFree": "Start free",
+    "current": "Your current plan",
+    "popular": "Most popular",
+    "cryptoNote": "No card needed: pay with the crypto you already have. Not sure how?",
+    "howTo": "See how to pay from Binance"
   }
 }

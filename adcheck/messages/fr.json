@@ -57,31 +57,6 @@
       "Trop de texte sur l'image"
     ]
   },
-  "pricing": {
-    "title": "Des tarifs simples",
-    "perMonth": "/ mois",
-    "free": {
-      "name": "Gratuit",
-      "price": "0 $",
-      "features": [
-        "3 vérifications à l'inscription",
-        "Rapport de conformité complet",
-        "Réécriture conforme du texte"
-      ],
-      "cta": "Commencer gratuitement"
-    },
-    "pro": {
-      "name": "Pro",
-      "price": "6 $",
-      "features": [
-        "100 vérifications par mois",
-        "25 images conformes générées par IA par mois",
-        "Historique complet de vos vérifications",
-        "Crédits renouvelés chaque mois"
-      ],
-      "cta": "S'abonner"
-    }
-  },
   "auth": {
     "loginTitle": "Connexion à AdCheck",
     "signupTitle": "Créez votre compte",
@@ -111,7 +86,21 @@
     "noCredits": "Vous n'avez plus de vérifications. Passez à Pro pour continuer.",
     "historyTitle": "Vérifications précédentes",
     "historyEmpty": "Aucune vérification pour l'instant. Lancez la première ci-dessus.",
-    "viewReport": "Voir le rapport"
+    "viewReport": "Voir le rapport",
+    "appealsLeft": "Contestations restantes",
+    "unlimited": "Illimité",
+    "fairUse": "usage raisonnable",
+    "subscriptionEnds": "Formule active jusqu'au {date}",
+    "creditsRenew": "Crédits renouvelés le {date}",
+    "renew": "Renouveler",
+    "workspaces": "Espaces de travail",
+    "allWorkspaces": "Tous",
+    "newWorkspace": "Nouvel espace",
+    "workspaceName": "Nom du client",
+    "create": "Créer",
+    "workspaceLimit": "Vous avez atteint la limite d'espaces de votre formule.",
+    "workspaceNameError": "Saisissez un nom (1 à 60 caractères).",
+    "workspaceFor": "Espace"
   },
   "form": {
     "title": "Nouvelle vérification",
@@ -215,5 +204,56 @@
     "privacy": "Politique de confidentialité",
     "refund": "Politique de remboursement",
     "notAffiliated": "Non affilié à Meta Platforms, Inc., ni approuvé ou sponsorisé par elle."
+  },
+  "plans": {
+    "free": {
+      "name": "Gratuit",
+      "tagline": "Essayez-le sur votre prochaine pub"
+    },
+    "starter": {
+      "name": "Starter",
+      "tagline": "Pour les petites boutiques"
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "Pour les annonceurs actifs"
+    },
+    "agency": {
+      "name": "Agence",
+      "tagline": "Pour les agences avec plusieurs clients"
+    },
+    "features": {
+      "checksOnce": "{n} vérifications à l'inscription",
+      "checks": "{n} vérifications / 30 jours",
+      "checksUnlimited": "Vérifications illimitées (usage raisonnable : {n} / 30 jours)",
+      "images": "{n} images IA conformes / 30 jours",
+      "noImages": "Pas de génération d'images",
+      "appeals": "{n} lettres de contestation / 30 jours",
+      "appealsUnlimited": "Lettres de contestation illimitées",
+      "noAppeals": "Pas de lettres de contestation",
+      "workspaces": "Jusqu'à {n} espaces clients",
+      "everythingPro": "Tout ce qui est dans Pro",
+      "landing": "Vérification de la page de destination",
+      "history": "Historique complet"
+    }
+  },
+  "pricing": {
+    "title": "Des tarifs simples et transparents",
+    "subtitle": "Payez en crypto (USDT, USDC, BTC, ETH, BNB, LTC, TRX). Crédits renouvelés tous les 30 jours.",
+    "perMonth": "/ mois",
+    "durations": {
+      "1": "1 mois",
+      "3": "3 mois",
+      "12": "12 mois"
+    },
+    "save": "2 mois offerts",
+    "billed": "{total} payés en une fois pour {months} mois",
+    "billedOnce": "{total} payés en une fois",
+    "choose": "Choisir {plan}",
+    "startFree": "Commencer gratuitement",
+    "current": "Votre formule actuelle",
+    "popular": "Le plus choisi",
+    "cryptoNote": "Pas besoin de carte : payez avec la crypto que vous avez déjà. Vous ne savez pas comment ?",
+    "howTo": "Voir comment payer depuis Binance"
   }
 }

@@ -19,9 +19,20 @@ import { ImagePicker } from "./ImagePicker";
 type ErrorKey = keyof (typeof messages)["form"]["errors"];
 const ERROR_KEYS = new Set(["imageRequired","imageType","imageSize","textRequired","productRequired","invalidUrl","tooLong","rateLimited","noCredits","unauthorized","aiFailed"]);
 
-export function CheckForm({ userId, disabled = false }: { userId: string; disabled?: boolean }) {
+export function CheckForm({
+  userId,
+  disabled = false,
+  workspaceId = null,
+  workspaceName,
+}: {
+  userId: string;
+  disabled?: boolean;
+  workspaceId?: string | null;
+  workspaceName?: string;
+}) {
   const f = useTranslations("form");
   const tc = useTranslations("common");
+  const td = useTranslations("dashboard");
   const locale = useLocale();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -64,7 +75,11 @@ export function CheckForm({ userId, disabled = false }: { userId: string; disabl
       const res = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagePath, adText, product, landingUrl: landingUrl.trim() || undefined, locale }),
+        body: JSON.stringify({
+          imagePath, adText, product, locale,
+          landingUrl: landingUrl.trim() || undefined,
+          workspaceId: workspaceId ?? undefined,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -84,6 +99,7 @@ export function CheckForm({ userId, disabled = false }: { userId: string; disabl
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">{f("title")}</CardTitle>
+        {workspaceName && <p className="text-sm text-muted-foreground">{td("workspaceFor")}: <strong>{workspaceName}</strong></p>}
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-5" noValidate>

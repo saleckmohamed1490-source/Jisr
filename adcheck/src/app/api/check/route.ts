@@ -19,6 +19,7 @@ const BodySchema = z.object({
   adText: z.string(),
   product: z.string(),
   landingUrl: z.string().optional(),
+  workspaceId: z.uuid().optional(),
   locale: z.string().optional(),
 });
 
@@ -60,6 +61,14 @@ export async function POST(req: NextRequest) {
 
   const locale = parseLocale(body.data.locale, routing.defaultLocale);
 
+  // A workspace, if given, must belong to the caller.
+  const workspaceId = body.data.workspaceId ?? null;
+  if (workspaceId) {
+    const { data: ws } = await admin
+      .from("workspaces").select("id").eq("id", workspaceId).eq("owner_id", user.id).maybeSingle();
+    if (!ws) return fail("imageRequired", 400);
+  }
+
   // Deduct the credit BEFORE calling the AI (atomic in the DB, so parallel
   // requests can't overspend), and refund it if anything below fails.
   if (!(await consumeCredit(user.id, "check"))) return fail("noCredits", 402);
@@ -89,6 +98,7 @@ export async function POST(req: NextRequest) {
       ad_text: fields.data.adText,
       product_description: fields.data.product,
       landing_url: fields.data.landingUrl ?? null,
+      workspace_id: workspaceId,
       locale,
       verdict: analysis.verdict,
       risk_score: analysis.risk_score,

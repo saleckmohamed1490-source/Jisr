@@ -20,13 +20,15 @@ export type CheckDetail = CheckSummary & {
 };
 
 /** Reads go through the user's own client, so RLS restricts them to their rows. */
-export async function listChecks(limit = 20): Promise<CheckSummary[]> {
+export async function listChecks(limit = 20, workspaceId?: string | null): Promise<CheckSummary[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("checks")
     .select("id, verdict, risk_score, ad_text, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as CheckSummary[];
 }

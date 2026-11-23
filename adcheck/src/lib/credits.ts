@@ -1,16 +1,28 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { PlanId } from "@/lib/plans";
 
-export type CreditKind = "check" | "image";
+export type CreditKind = "check" | "image" | "appeal";
 
 export type Profile = {
   id: string;
   email: string | null;
-  plan: "free" | "pro";
+  plan: PlanId;
   check_credits: number;
   image_credits: number;
+  /** null = unlimited */
+  appeal_credits: number | null;
   credits_renew_at: string | null;
+  locale: string;
+};
+
+export type Subscription = {
+  plan: Exclude<PlanId, "free">;
+  status: "active" | "expired";
+  current_period_start: string;
+  current_period_end: string;
+  provider: string;
 };
 
 /** The signed-in user's profile (read through RLS). */
@@ -18,9 +30,18 @@ export async function getMyProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, plan, check_credits, image_credits, credits_renew_at")
+    .select("id, email, plan, check_credits, image_credits, appeal_credits, credits_renew_at, locale")
     .maybeSingle();
   return (data as Profile) ?? null;
+}
+
+export async function getMySubscription(): Promise<Subscription | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan, status, current_period_start, current_period_end, provider")
+    .maybeSingle();
+  return (data as Subscription) ?? null;
 }
 
 /**

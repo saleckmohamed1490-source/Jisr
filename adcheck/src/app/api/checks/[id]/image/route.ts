@@ -7,6 +7,7 @@ import { consumeCredit, refundCredit } from "@/lib/credits";
 import { buildImagePrompt, getImageProvider } from "@/lib/imagegen";
 import { EXTENSION_BY_TYPE, validateImageBytes } from "@/lib/image-validation";
 import { AnalysisSchema } from "@/lib/analysis/schema";
+import { PLANS, type PlanId } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -15,7 +16,7 @@ function fail(error: string, status: number) {
   return NextResponse.json({ error }, { status });
 }
 
-/** "Create a compliant image for me" — Pro plan, one image credit per image. */
+/** "Create a compliant image for me" — paid plans, one image credit per image. */
 export async function POST(_req: NextRequest, ctx: RouteContext<"/api/checks/[id]/image">) {
   const { id } = await ctx.params;
   const user = await getUser();
@@ -24,7 +25,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext<"/api/checks/[id
 
   const admin = createAdminClient();
   const [{ data: profile }, { data: check }] = await Promise.all([
-    admin.from("profiles").select("plan").eq("id", user.id).single<{ plan: string }>(),
+    admin.from("profiles").select("plan").eq("id", user.id).single<{ plan: PlanId }>(),
     admin
       .from("checks")
       .select("id, report")
@@ -33,7 +34,8 @@ export async function POST(_req: NextRequest, ctx: RouteContext<"/api/checks/[id
       .maybeSingle<{ id: string; report: unknown }>(),
   ]);
   if (!check) return fail("notFound", 404);
-  if (profile?.plan !== "pro") return fail("imageProOnly", 403);
+  // Image generation is a paid-plan feature (the Free plan has no image quota).
+  if (PLANS[profile?.plan ?? "free"].images <= 0) return fail("imageProOnly", 403);
 
   const report = AnalysisSchema.safeParse(check.report);
   if (!report.success) return fail("imageFailed", 500);

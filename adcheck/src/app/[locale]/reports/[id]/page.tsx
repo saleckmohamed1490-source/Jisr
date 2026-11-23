@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/i18n/format";
 import { getUser } from "@/lib/supabase/server";
 import { getCheck, listGeneratedImages, signedImageUrl } from "@/lib/data/checks";
 import { getMyProfile } from "@/lib/credits";
+import { PLANS } from "@/lib/plans";
 import { ReportView } from "@/components/ReportView";
 import { GenerateImage } from "@/components/GenerateImage";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export default async function ReportPage({ params }: PageProps<"/[locale]/report
         <GenerateImage
           checkId={check.id}
           initial={generated}
-          canGenerate={profile?.plan === "pro"}
+          canGenerate={PLANS[profile?.plan ?? "free"].images > 0}
           imageCredits={profile?.image_credits ?? 0}
         />
       </div>
