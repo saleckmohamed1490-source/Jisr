@@ -4,7 +4,9 @@ import { getI18n } from "@/lib/i18n/server";
 import { fmt } from "@/lib/i18n/config";
 import { formatDate } from "@/lib/i18n/format";
 import { getUser } from "@/lib/supabase/server";
-import { getCheck, signedImageUrl } from "@/lib/data/checks";
+import { getCheck, listGeneratedImages, signedImageUrl } from "@/lib/data/checks";
+import { getMyProfile } from "@/lib/credits";
+import { GenerateImage } from "@/components/GenerateImage";
 import { ReportView } from "@/components/ReportView";
 
 export default async function ReportPage({ params }: PageProps<"/reports/[id]">) {
@@ -15,8 +17,12 @@ export default async function ReportPage({ params }: PageProps<"/reports/[id]">)
   const check = await getCheck(id);
   if (!check) notFound();
 
-  const { locale, t } = await getI18n();
-  const imageUrl = await signedImageUrl(check.image_path);
+  const [{ locale, t }, imageUrl, generated, profile] = await Promise.all([
+    getI18n(),
+    signedImageUrl(check.image_path),
+    listGeneratedImages(check.id),
+    getMyProfile(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -45,6 +51,16 @@ export default async function ReportPage({ params }: PageProps<"/reports/[id]">)
       </section>
 
       <ReportView analysis={check.report} t={t} />
+
+      <div className="mt-6">
+        <GenerateImage
+          checkId={check.id}
+          initial={generated}
+          isPro={profile?.plan === "pro"}
+          imageCredits={profile?.image_credits ?? 0}
+          t={t}
+        />
+      </div>
     </div>
   );
 }

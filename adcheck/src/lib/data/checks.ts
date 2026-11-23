@@ -47,3 +47,22 @@ export async function signedImageUrl(path: string, expiresIn = 3600): Promise<st
   const { data } = await supabase.storage.from(IMAGES_BUCKET).createSignedUrl(path, expiresIn);
   return data?.signedUrl ?? null;
 }
+
+export type GeneratedImageRow = { id: string; url: string; created_at: string };
+
+export async function listGeneratedImages(checkId: string): Promise<GeneratedImageRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("generated_images")
+    .select("id, image_path, created_at")
+    .eq("check_id", checkId)
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []) as { id: string; image_path: string; created_at: string }[];
+  if (rows.length === 0) return [];
+  const { data: signed } = await supabase.storage
+    .from(IMAGES_BUCKET)
+    .createSignedUrls(rows.map((r) => r.image_path), 3600);
+  return rows
+    .map((r, i) => ({ id: r.id, created_at: r.created_at, url: signed?.[i]?.signedUrl ?? "" }))
+    .filter((r) => r.url);
+}
