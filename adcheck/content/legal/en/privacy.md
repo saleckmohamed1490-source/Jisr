@@ -15,7 +15,7 @@ To provide the Service, keep your history, manage your plan and credits, send tr
 
 ## Who processes it
 - **Supabase** — database, authentication and file storage.
-- **Anthropic (Claude)** — analysis of ads and writing of texts.
+- **Our AI model provider** — analysis of ads and writing of texts.
 - **OpenAI or Replicate** — image generation.
 - **NOWPayments** — crypto payments.
 - **Resend** — e-mail delivery.

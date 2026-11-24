@@ -15,7 +15,7 @@ Pour fournir le Service, conserver votre historique, gérer votre formule et vos
 
 ## Qui les traite
 - **Supabase** — base de données, authentification et stockage.
-- **Anthropic (Claude)** — analyse des publicités et rédaction des textes.
+- **Notre fournisseur de modèles d'IA** — analyse des publicités et rédaction des textes.
 - **OpenAI ou Replicate** — génération d'images.
 - **NOWPayments** — paiements en crypto.
 - **Resend** — envoi des e-mails.
