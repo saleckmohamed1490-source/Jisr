@@ -140,6 +140,9 @@ def init_db():
     cols = [r[1] for r in db.execute("PRAGMA table_info(transactions)")]
     if cols and "usd_rate" not in cols:
         db.execute("ALTER TABLE transactions RENAME TO transactions_old")
+    if cols and "usd_rate" in cols and "to_currency" not in cols:
+        db.execute("ALTER TABLE transactions ADD COLUMN to_currency TEXT NOT NULL DEFAULT ''")
+        db.execute("ALTER TABLE transactions ADD COLUMN to_amount REAL")
     pm_cols = [r[1] for r in db.execute("PRAGMA table_info(payment_methods)")]
     if pm_cols and "logo_version" not in pm_cols:
         db.execute("ALTER TABLE payment_methods ADD COLUMN logo_version TEXT")
@@ -175,6 +178,8 @@ def init_db():
         profit REAL NOT NULL,             -- mru_paid - cost_mru
         method_id INTEGER,
         method_name TEXT NOT NULL DEFAULT '',
+        to_currency TEXT NOT NULL DEFAULT '',
+        to_amount REAL,
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
@@ -511,6 +516,8 @@ def tx_payload(d):
     except ValueError:
         tx_date = now_local()
     cost = round(usd * rate, 2)
+    to_amount = num(d.get("to_amount"))
+    to_amount = to_amount if to_amount and to_amount > 0 else None
     return {
         "tx_date": tx_date,
         "usd_rate": rate,
@@ -520,6 +527,8 @@ def tx_payload(d):
         "profit": round(paid - cost, 2),
         "method_id": method["id"],
         "method_name": method["name"],
+        "to_currency": str(d.get("to_currency") or "").strip().upper()[:6] if to_amount else "",
+        "to_amount": round(to_amount, 2) if to_amount else None,
         "customer": str(d.get("customer") or "").strip()[:80],
         "note": str(d.get("note") or "").strip()[:300],
     }, None
@@ -644,10 +653,11 @@ def api_tx_csv():
     buf.write("﻿")  # so Excel shows Arabic correctly
     w = csv.writer(buf)
     w.writerow(["التاريخ", "سعر الدولار", "الدولار", "التكلفة بالأوقية", "دفع الزبون", "الربح",
-                "طريقة الدفع", "الزبون", "ملاحظة"])
+                "طريقة الدفع", "استلم", "العملة", "الزبون", "ملاحظة"])
     for r in rows:
         w.writerow([r["tx_date"].replace("T", " "), r["usd_rate"], r["usd_amount"], r["cost_mru"],
-                    r["mru_paid"], r["profit"], r["method_name"], r["customer"], r["note"]])
+                    r["mru_paid"], r["profit"], r["method_name"], r["to_amount"] or "", r["to_currency"],
+                    r["customer"], r["note"]])
     return Response(buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={
         "Content-Disposition": f"attachment; filename=jisr-{datetime.now():%Y%m%d}.csv"})
 

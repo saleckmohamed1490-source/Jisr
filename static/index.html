@@ -58,34 +58,46 @@
           <span>تعديل معاملة</span>
           <button class="btn sm ghost" id="cancel-edit">إلغاء</button>
         </div>
-        <h3 id="form-title">تسجيل معاملة</h3>
+        <h3 id="form-title">حاسبة الصرف</h3>
         <form id="tx-form" novalidate>
+          <div class="field"><label for="calc-cur">العملة</label><select class="input" id="calc-cur"></select></div>
+          <div class="two">
+            <div class="field">
+              <label for="f-paid">الزبون يدفع</label>
+              <div class="input-wrap">
+                <input class="input ltr big-num" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0">
+                <span class="suffix">أوقية</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="calc-fx">يستلم</label>
+              <div class="input-wrap">
+                <input class="input ltr big-num" id="calc-fx" inputmode="decimal" autocomplete="off" placeholder="0">
+                <span class="suffix" id="calc-code"></span>
+              </div>
+            </div>
+          </div>
+          <div class="hint" id="calc-hint" style="margin:-6px 0 14px"></div>
+
+          <div class="section-title">حفظ المعاملة</div>
           <div class="field">
             <label>الزبون دفع على</label>
             <div class="methods" id="method-pick"></div>
           </div>
 
-          <div class="field">
-            <label for="f-rate">سعر الدولار (اشتريت به)</label>
-            <div class="input-wrap">
-              <input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0">
-              <span class="suffix">أوقية / $</span>
-            </div>
-          </div>
-
           <div class="two">
+            <div class="field">
+              <label for="f-rate">سعر الدولار</label>
+              <div class="input-wrap">
+                <input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0">
+                <span class="suffix">أوقية</span>
+              </div>
+            </div>
             <div class="field">
               <label for="f-usd">كم كلّف من دولار</label>
               <div class="input-wrap">
                 <input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0">
                 <span class="suffix">$</span>
-              </div>
-            </div>
-            <div class="field">
-              <label for="f-paid">كم دفع الزبون</label>
-              <div class="input-wrap">
-                <input class="input ltr" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0">
-                <span class="suffix">أوقية</span>
               </div>
             </div>
           </div>
@@ -200,17 +212,6 @@
         </form>
       </div>
 
-      <div class="card">
-        <h3>حاسبة</h3>
-        <div class="field"><label>العملة</label><select class="input" id="calc-cur"></select></div>
-        <div class="two">
-          <div class="field"><label>الزبون يدفع</label>
-            <div class="input-wrap"><input class="input ltr" id="calc-mru" inputmode="decimal" placeholder="0"><span class="suffix">أوقية</span></div></div>
-          <div class="field"><label>يستلم</label>
-            <div class="input-wrap"><input class="input ltr" id="calc-fx" inputmode="decimal" placeholder="0"><span class="suffix" id="calc-code"></span></div></div>
-        </div>
-        <div class="hint" id="calc-hint"></div>
-      </div>
     </div>
 
     <!-- Payment methods -->
@@ -413,9 +414,10 @@ const rateText = (r, v) => v ? (r.unit === "per100" ? `${fmt(v, 4)} ${r.code} ل
 async function loadRates() {
   rates = await api("/api/rates");
   renderRateStrip();
-  const keep = $("calc-cur").value;
+  let keep = $("calc-cur").value;
+  if (!keep) { try { keep = localStorage.getItem("jisr_calc_cur") || ""; } catch (_) {} }
   $("calc-cur").innerHTML = rates.map(r => `<option value="${r.id}">${esc(r.flag)} ${esc(r.name)}</option>`).join("");
-  if (keep) $("calc-cur").value = keep;
+  if (keep && rates.some(r => String(r.id) === keep)) $("calc-cur").value = keep;
   calc("mru");
 }
 
@@ -505,20 +507,24 @@ $("share-rates").addEventListener("click", async () => {
 });
 
 // Calculator: customer pays MRU -> receives currency, using the sell rate (or buy rate if no sell rate).
+const calcRate = () => rates.find(x => x.id === +$("calc-cur").value);
 function calc(from) {
-  const r = rates.find(x => x.id === +$("calc-cur").value);
+  const r = calcRate();
   $("calc-code").textContent = r ? r.code : "";
   const v = r && (r.sell_rate || r.buy_rate);
-  $("calc-hint").textContent = r ? (v ? `بسعر ${rateText(r, v)}` : "ضع سعراً لهذه العملة أولاً") : "";
+  $("calc-hint").textContent = r ? (v ? `بسعر ${rateText(r, v)}` : "ضع سعراً لهذه العملة في تبويب أسعار الصرف") : "";
   if (!v) return;
   const toFx = m => r.unit === "per100" ? m * v / 100 : m / v;
   const toMru = x => r.unit === "per100" ? x * 100 / v : x * v;
-  if (from === "mru") { const m = numOf($("calc-mru").value); $("calc-fx").value = m > 0 ? +toFx(m).toFixed(2) : ""; }
-  else { const x = numOf($("calc-fx").value); $("calc-mru").value = x > 0 ? +toMru(x).toFixed(2) : ""; }
+  if (from === "mru") { const m = numOf($("f-paid").value); $("calc-fx").value = m > 0 ? +toFx(m).toFixed(2) : ""; }
+  else { const x = numOf($("calc-fx").value); $("f-paid").value = x > 0 ? +toMru(x).toFixed(2) : ""; }
 }
-$("calc-mru").addEventListener("input", () => calc("mru"));
-$("calc-fx").addEventListener("input", () => calc("fx"));
-$("calc-cur").addEventListener("change", () => calc("mru"));
+$("f-paid").addEventListener("input", () => { calc("mru"); recalc(); });
+$("calc-fx").addEventListener("input", () => { calc("fx"); recalc(); });
+$("calc-cur").addEventListener("change", () => {
+  try { localStorage.setItem("jisr_calc_cur", $("calc-cur").value); } catch (_) {}
+  calc("mru"); recalc();
+});
 
 // ---------------------------------------------------------------- transaction form
 let editingTx = null;
@@ -533,11 +539,11 @@ function recalc() {
   } else detail.textContent = "";
   box.textContent = "—"; box.className = "value";
 }
-["f-rate", "f-usd", "f-paid"].forEach(id => $(id).addEventListener("input", recalc));
+["f-rate", "f-usd"].forEach(id => $(id).addEventListener("input", recalc));
 
 function resetForm() {
   editingTx = null;
-  ["f-usd", "f-paid", "f-customer", "f-note"].forEach(id => $(id).value = "");
+  ["f-usd", "f-paid", "calc-fx", "f-customer", "f-note"].forEach(id => $(id).value = "");
   $("f-rate").value = settings.usd_rate ?? "";
   $("f-date").value = localDT();
   const lastM = methodById(settings.last_method_id);
@@ -555,6 +561,10 @@ function editTx(t) {
   editingTx = t.id;
   pickedMethod = t.method_id; renderMethodPick();
   $("f-rate").value = t.usd_rate; $("f-usd").value = t.usd_amount; $("f-paid").value = t.mru_paid;
+  const tr = rates.find(r => r.code === t.to_currency);
+  if (tr) $("calc-cur").value = tr.id;
+  $("calc-code").textContent = tr ? tr.code : (t.to_currency || "");
+  $("calc-fx").value = t.to_amount ?? "";
   $("f-date").value = t.tx_date; $("f-customer").value = t.customer; $("f-note").value = t.note;
   if (t.customer || t.note) document.querySelector("#tx-form details").open = true;
   $("editing-bar").classList.remove("hidden"); $("form-title").classList.add("hidden");
@@ -569,6 +579,8 @@ $("tx-form").addEventListener("submit", async e => {
   const body = {
     method_id: pickedMethod, usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
     mru_paid: normDigits($("f-paid").value), tx_date: $("f-date").value,
+    to_currency: numOf($("calc-fx").value) > 0 ? (calcRate()?.code || "") : "",
+    to_amount: normDigits($("calc-fx").value),
     customer: $("f-customer").value, note: $("f-note").value,
   };
   const btn = $("tx-save"); btn.disabled = true;
@@ -592,7 +604,7 @@ function txRow(t) {
       <div class="tx">
         ${logoHtml(m)}
         <div class="main">
-          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية · كلّف <bdi>${fmt(t.usd_amount)} $</bdi></div>
+          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""} · كلّف <bdi>${fmt(t.usd_amount)} $</bdi></div>
           <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi> · ${esc(t.method_name)} · سعر الدولار <bdi>${fmt(t.usd_rate, 4)}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
         </div>
         <div class="profit ${cls(t.profit)}">${signed(t.profit)}<small>أوقية</small></div>

@@ -341,3 +341,10 @@ h3 { font-size: 16px; }
 .rate-vals > div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
 .rate-vals .k { display: block; font-size: 12px; color: var(--muted); }
 .rate-vals b { font-size: 15px; }
+
+/* ---- Home calculator + transaction ---- */
+.section-title {
+  font-weight: 800; font-size: 15px; margin: 4px 0 12px; padding-top: 14px;
+  border-top: 1px dashed var(--border); color: var(--primary);
+}
+.input.big-num { font-size: 20px; font-weight: 800; }

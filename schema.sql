@@ -70,3 +70,7 @@ DO $$ BEGIN
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA jisr TO jisr_app;
   END IF;
 END $$;
+
+-- v3: what the customer received (from the calculator)
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS to_currency TEXT NOT NULL DEFAULT '';
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS to_amount DOUBLE PRECISION;
