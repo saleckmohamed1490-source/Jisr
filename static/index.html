@@ -68,6 +68,10 @@
           </div>
         </div>
         <div class="hint" id="calc-hint" style="margin:-6px 0 12px"></div>
+        <div class="field">
+          <label>الزبون دفع على</label>
+          <div class="methods" id="calc-method-pick"></div>
+        </div>
         <button type="button" class="btn ghost block" id="calc-to-tx">تسجيل هذا كمعاملة ↓</button>
       </div>
 
@@ -364,17 +368,24 @@ async function loadMethods() {
   $("q-method").value = keep;
 }
 
-let pickedMethod = null;
-function renderMethodPick() {
-  const active = methods.filter(m => m.is_active || m.id === pickedMethod);
-  $("method-pick").innerHTML = active.map(m => `
-    <button type="button" class="method ${m.id === pickedMethod ? "on" : ""}" data-id="${m.id}">
+// Payment-method tiles: one set in the calculator, one in the transaction form.
+let pickedMethod = null, calcMethod = null;
+const methodTiles = selected => methods.filter(m => m.is_active || m.id === selected).map(m => `
+    <button type="button" class="method ${m.id === selected ? "on" : ""}" data-id="${m.id}">
       ${logoHtml(m)}<span>${esc(m.name)}</span>
     </button>`).join("") || `<p class="muted small">أضف طريقة دفع من تبويب "طرق الدفع"</p>`;
+function renderMethodPick() {
+  if (calcMethod === null || !methods.some(m => m.id === calcMethod && m.is_active)) calcMethod = pickedMethod;
+  $("method-pick").innerHTML = methodTiles(pickedMethod);
+  $("calc-method-pick").innerHTML = methodTiles(calcMethod);
 }
 $("method-pick").addEventListener("click", e => {
   const b = e.target.closest(".method"); if (!b) return;
   pickedMethod = +b.dataset.id; renderMethodPick();
+});
+$("calc-method-pick").addEventListener("click", e => {
+  const b = e.target.closest(".method"); if (!b) return;
+  calcMethod = +b.dataset.id; renderMethodPick();
 });
 
 function renderMethodList() {
@@ -574,6 +585,7 @@ $("calc-to-tx").addEventListener("click", () => {
   $("tx-cur").value = $("calc-cur").value;
   onTxCurrency(true);
   $("f-paid").value = $("c-mru").value; $("f-fx").value = $("c-fx").value;
+  if (calcMethod) { pickedMethod = calcMethod; renderMethodPick(); }
   syncUsdFromFx(); recalc();
   $("tx-card").scrollIntoView({ behavior: "smooth", block: "start" });
 });
