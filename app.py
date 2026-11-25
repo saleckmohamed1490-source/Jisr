@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-جسر (Jisr) - دفتر معاملات الصرف وحساب الربح
-Private ledger for a money-exchange business: record each exchange
-transaction and see the profit per day / month / currency.
+جسر (Jisr) - دفتر معاملات التحويل وحساب الربح
 
-Profit (in MRU) is the difference between the rate given to the customer
-and your cost (market) rate, applied to the foreign amount, plus any fee:
+Workflow: dollars (USDT) are bought on Binance at a price in MRU, the
+transfer costs some amount of dollars, and the customer pays in MRU to one
+of the payment accounts (Bankily, Sedad, Masrivi, ...).
 
-  sell (customer pays MRU, receives foreign):
-      profit = amount_mru - cost_in_mru(amount_foreign) + fee
-  buy  (customer gives foreign, receives MRU):
-      profit = cost_in_mru(amount_foreign) - amount_mru + fee
+    cost_mru = usd_amount * usd_rate
+    profit   = mru_paid - cost_mru
 """
 import csv
 import io
@@ -18,18 +15,21 @@ import os
 import secrets
 import sqlite3
 import time
+import uuid
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
 
 import bcrypt
-from flask import Flask, Response, g, jsonify, request, send_from_directory, session
+from flask import Flask, Response, abort, g, jsonify, request, send_file, send_from_directory, session
+from PIL import Image, UnidentifiedImageError
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = Path(os.environ.get("JISR_DATA_DIR", BASE_DIR / "data"))
+LOGO_DIR = DATA_DIR / "logos"
 DB_PATH = Path(os.environ.get("JISR_DB", DATA_DIR / "jisr.db"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOGO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _load_secret():
@@ -47,14 +47,13 @@ def _load_secret():
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
 app.secret_key = _load_secret()
 app.config.update(
+    MAX_CONTENT_LENGTH=3 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("JISR_SECURE_COOKIES") == "1",
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
 )
 
-MODES = ("per100", "per_unit")  # per100: foreign per 100 MRU ; per_unit: MRU per 1 foreign
-TYPES = ("sell", "buy")
 _login_attempts = {}
 
 MESSAGES = {
@@ -65,16 +64,22 @@ MESSAGES = {
     "password_short": "كلمة المرور قصيرة (٨ أحرف على الأقل)",
     "password_mismatch": "كلمتا المرور غير متطابقتين",
     "required": "املأ الحقول المطلوبة",
-    "bad_amount": "أدخل مبلغاً صحيحاً أكبر من صفر",
-    "bad_rate": "أدخل سعراً صحيحاً أكبر من صفر",
-    "bad_currency": "اختر العملة",
-    "currency_exists": "هذه العملة موجودة",
+    "bad_rate": "أدخل سعر الدولار",
+    "bad_usd": "أدخل كم كلّف من دولار",
+    "bad_mru": "أدخل المبلغ الذي دفعه الزبون",
+    "bad_method": "اختر طريقة الدفع",
+    "bad_image": "الملف ليس صورة صالحة",
+    "too_large": "الصورة كبيرة جداً (الحد ٣ ميغابايت)",
     "not_found": "غير موجود",
 }
 
 
 def err(key, status=400):
     return jsonify({"ok": False, "error": key, "message": MESSAGES.get(key, key)}), status
+
+
+def now_local():
+    return datetime.now().strftime("%Y-%m-%dT%H:%M")
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +101,10 @@ def close_db(exc):
 
 def init_db():
     db = sqlite3.connect(str(DB_PATH))
+    # An earlier version of the app used a different transactions layout; keep it aside.
+    cols = [r[1] for r in db.execute("PRAGMA table_info(transactions)")]
+    if cols and "usd_rate" not in cols:
+        db.execute("ALTER TABLE transactions RENAME TO transactions_old")
     db.executescript("""
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS admin (
@@ -104,29 +113,28 @@ def init_db():
         password_hash TEXT NOT NULL,
         created_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS currencies (
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    );
+    CREATE TABLE IF NOT EXISTS payment_methods (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL,
-        flag TEXT NOT NULL DEFAULT '',
-        rate_mode TEXT NOT NULL DEFAULT 'per100',
-        sell_rate REAL,      -- default rate given to a customer who buys this currency
-        buy_rate REAL,       -- default rate given to a customer who sells this currency
-        cost_rate REAL,      -- your cost / market rate
-        sort_order INTEGER NOT NULL DEFAULT 0
+        color TEXT NOT NULL DEFAULT '#00704a',
+        logo TEXT,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1
     );
     CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tx_date TEXT NOT NULL,           -- local 'YYYY-MM-DDTHH:MM'
-        type TEXT NOT NULL,              -- sell | buy
-        currency_code TEXT NOT NULL,
-        rate_mode TEXT NOT NULL,
-        amount_mru REAL NOT NULL,
-        amount_foreign REAL NOT NULL,
-        rate_customer REAL NOT NULL,
-        rate_cost REAL NOT NULL,
-        fee REAL NOT NULL DEFAULT 0,
-        profit REAL NOT NULL,
+        tx_date TEXT NOT NULL,            -- local 'YYYY-MM-DDTHH:MM'
+        usd_rate REAL NOT NULL,           -- MRU per 1 dollar (Binance price)
+        usd_amount REAL NOT NULL,         -- dollars the transfer cost
+        cost_mru REAL NOT NULL,           -- usd_amount * usd_rate
+        mru_paid REAL NOT NULL,           -- what the customer paid
+        profit REAL NOT NULL,             -- mru_paid - cost_mru
+        method_id INTEGER,
+        method_name TEXT NOT NULL DEFAULT '',
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
@@ -134,54 +142,31 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(tx_date DESC);
     """)
-    if db.execute("SELECT COUNT(*) FROM currencies").fetchone()[0] == 0:
-        db.execute(
-            "INSERT INTO currencies (code, name, flag, rate_mode, sell_rate) VALUES (?, ?, ?, ?, ?)",
-            ("SLE", "ليون سيراليون", "🇸🇱", "per100", 53.0),
-        )
+    if db.execute("SELECT COUNT(*) FROM payment_methods").fetchone()[0] == 0:
+        for i, (name, color) in enumerate([("بنكيلي", "#e07a1f"), ("سداد", "#1f6fe0"), ("مصريفي", "#0e9f6e")]):
+            db.execute("INSERT INTO payment_methods (name, color, sort_order) VALUES (?, ?, ?)", (name, color, i))
     db.commit()
     db.close()
 
 
-def now_local():
-    return datetime.now().strftime("%Y-%m-%dT%H:%M")
+def get_setting(key):
+    row = get_db().execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
 
 
-# ---------------------------------------------------------------------------
-# Money math
-# ---------------------------------------------------------------------------
-def foreign_to_mru(foreign, rate, mode):
-    return foreign * 100 / rate if mode == "per100" else foreign * rate
+def set_setting(db, key, value):
+    db.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+               "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, str(value)))
 
 
-def mru_to_foreign(mru, rate, mode):
-    return mru * rate / 100 if mode == "per100" else mru / rate
-
-
-def compute(tx_type, mode, rate_customer, rate_cost, fee, amount_mru=None, amount_foreign=None):
-    """Fill in the missing amount using the customer rate, then compute profit."""
-    if amount_mru is None:
-        amount_mru = foreign_to_mru(amount_foreign, rate_customer, mode)
-    if amount_foreign is None:
-        amount_foreign = mru_to_foreign(amount_mru, rate_customer, mode)
-    cost_mru = foreign_to_mru(amount_foreign, rate_cost, mode)
-    profit = (amount_mru - cost_mru) if tx_type == "sell" else (cost_mru - amount_mru)
-    profit += fee
-    return round(amount_mru, 2), round(amount_foreign, 2), round(profit, 2)
-
-
-def num(value, positive=False, allow_none=False):
+def num(value):
     if value in (None, ""):
-        return None if allow_none else (None if positive else 0.0)
+        return None
     try:
         n = float(str(value).replace(",", "").strip())
     except ValueError:
         return None
-    if n != n or abs(n) == float("inf"):
-        return None
-    if positive and n <= 0:
-        return None
-    return n
+    return n if n == n and abs(n) != float("inf") else None
 
 
 # ---------------------------------------------------------------------------
@@ -199,10 +184,9 @@ def login_required(fn):
 
 
 def too_many_logins():
-    ip = (request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or request.remote_addr or "?")
+    ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or request.remote_addr or "?"
     now = time.time()
-    hits = [t for t in _login_attempts.get(ip, []) if now - t < 60]
-    hits.append(now)
+    hits = [t for t in _login_attempts.get(ip, []) if now - t < 60] + [now]
     _login_attempts[ip] = hits
     return len(hits) > 10
 
@@ -217,8 +201,7 @@ def start_session(username):
 @app.get("/api/state")
 def api_state():
     has_admin = get_db().execute("SELECT 1 FROM admin").fetchone() is not None
-    return jsonify({"setup_needed": not has_admin, "logged_in": bool(session.get("admin")),
-                    "user": session.get("user")})
+    return jsonify({"setup_needed": not has_admin, "logged_in": bool(session.get("admin"))})
 
 
 @app.post("/api/setup")
@@ -268,112 +251,165 @@ def api_logout():
 
 
 # ---------------------------------------------------------------------------
-# Currencies
+# Payment methods (Bankily, Sedad, Masrivi, ...) with logos
 # ---------------------------------------------------------------------------
-@app.get("/api/currencies")
+def method_json(r):
+    d = dict(r)
+    d["logo_url"] = f"/logos/{r['logo']}" if r["logo"] else None
+    return d
+
+
+@app.get("/api/methods")
 @login_required
-def api_currencies():
-    rows = get_db().execute("SELECT * FROM currencies ORDER BY sort_order, id").fetchall()
-    return jsonify([dict(r) for r in rows])
+def api_methods():
+    rows = get_db().execute("SELECT * FROM payment_methods ORDER BY sort_order, id").fetchall()
+    return jsonify([method_json(r) for r in rows])
 
 
-def currency_payload(d):
-    p = {
-        "code": str(d.get("code") or "").strip().upper()[:6],
-        "name": str(d.get("name") or "").strip()[:60],
-        "flag": str(d.get("flag") or "").strip()[:16],
-        "rate_mode": d.get("rate_mode") if d.get("rate_mode") in MODES else "per100",
+def method_payload(d):
+    name = str(d.get("name") or "").strip()[:40]
+    if not name:
+        return None
+    color = str(d.get("color") or "#00704a").strip()
+    if not (len(color) == 7 and color.startswith("#")):
+        color = "#00704a"
+    return {
+        "name": name,
+        "color": color,
         "sort_order": int(num(d.get("sort_order")) or 0),
+        "is_active": 0 if d.get("is_active") in (False, 0, "0") else 1,
     }
-    for f in ("sell_rate", "buy_rate", "cost_rate"):
-        v = num(d.get(f), allow_none=True)
-        p[f] = v if v and v > 0 else None
-    return p if p["code"] and p["name"] else None
 
 
-@app.post("/api/currencies")
+@app.post("/api/methods")
 @login_required
-def api_currency_create():
-    p = currency_payload(request.get_json(silent=True) or {})
+def api_method_create():
+    p = method_payload(request.get_json(silent=True) or {})
     if not p:
         return err("required")
     db = get_db()
-    try:
-        db.execute(f"INSERT INTO currencies ({', '.join(p)}) VALUES ({', '.join('?' * len(p))})", list(p.values()))
-        db.commit()
-    except sqlite3.IntegrityError:
-        return err("currency_exists", 409)
-    return jsonify({"ok": True}), 201
+    cur = db.execute(f"INSERT INTO payment_methods ({', '.join(p)}) VALUES ({', '.join('?' * len(p))})",
+                     list(p.values()))
+    db.commit()
+    return jsonify({"ok": True, "id": cur.lastrowid}), 201
 
 
-@app.put("/api/currencies/<int:cid>")
+@app.put("/api/methods/<int:mid>")
 @login_required
-def api_currency_update(cid):
-    p = currency_payload(request.get_json(silent=True) or {})
+def api_method_update(mid):
+    p = method_payload(request.get_json(silent=True) or {})
     if not p:
         return err("required")
     db = get_db()
-    try:
-        cur = db.execute(f"UPDATE currencies SET {', '.join(f'{k} = ?' for k in p)} WHERE id = ?",
-                         list(p.values()) + [cid])
-        db.commit()
-    except sqlite3.IntegrityError:
-        return err("currency_exists", 409)
+    cur = db.execute(f"UPDATE payment_methods SET {', '.join(f'{k} = ?' for k in p)} WHERE id = ?",
+                     list(p.values()) + [mid])
+    db.execute("UPDATE transactions SET method_name = ? WHERE method_id = ?", (p["name"], mid))
+    db.commit()
     return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
 
 
-@app.delete("/api/currencies/<int:cid>")
+@app.delete("/api/methods/<int:mid>")
 @login_required
-def api_currency_delete(cid):
+def api_method_delete(mid):
     db = get_db()
-    db.execute("DELETE FROM currencies WHERE id = ?", (cid,))
+    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
+    db.execute("DELETE FROM payment_methods WHERE id = ?", (mid,))
     db.commit()
+    if row and row["logo"]:
+        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
     return jsonify({"ok": True})
+
+
+@app.post("/api/methods/<int:mid>/logo")
+@login_required
+def api_method_logo(mid):
+    db = get_db()
+    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
+    if not row:
+        return err("not_found", 404)
+    f = request.files.get("logo")
+    if not f:
+        return err("bad_image")
+    try:
+        img = Image.open(f.stream)
+        img.load()
+    except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError):
+        return err("bad_image")
+    img = img.convert("RGBA")
+    img.thumbnail((256, 256))
+    name = f"{uuid.uuid4().hex}.png"
+    img.save(LOGO_DIR / name, "PNG")
+    db.execute("UPDATE payment_methods SET logo = ? WHERE id = ?", (name, mid))
+    db.commit()
+    if row["logo"]:
+        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
+    return jsonify({"ok": True, "logo_url": f"/logos/{name}"})
+
+
+@app.delete("/api/methods/<int:mid>/logo")
+@login_required
+def api_method_logo_delete(mid):
+    db = get_db()
+    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
+    if row and row["logo"]:
+        db.execute("UPDATE payment_methods SET logo = NULL WHERE id = ?", (mid,))
+        db.commit()
+        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
+    return jsonify({"ok": True})
+
+
+@app.get("/logos/<name>")
+def logo_file(name):
+    path = LOGO_DIR / Path(name).name
+    if not path.exists():
+        abort(404)
+    resp = send_file(path, mimetype="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return resp
 
 
 # ---------------------------------------------------------------------------
 # Transactions
 # ---------------------------------------------------------------------------
 def tx_payload(d):
-    """Validate input and return (row_dict, error_key)."""
-    tx_type = d.get("type") if d.get("type") in TYPES else "sell"
-    cur = get_db().execute("SELECT * FROM currencies WHERE code = ?",
-                           (str(d.get("currency_code") or "").upper(),)).fetchone()
-    if not cur:
-        return None, "bad_currency"
-    rate_c = num(d.get("rate_customer"), positive=True)
-    rate_k = num(d.get("rate_cost"), positive=True)
-    if rate_c is None or rate_k is None:
+    rate = num(d.get("usd_rate"))
+    if not rate or rate <= 0:
         return None, "bad_rate"
-    fee = num(d.get("fee")) or 0.0
-    basis = d.get("basis") if d.get("basis") in ("mru", "foreign") else "mru"
-    amount = num(d.get("amount_mru" if basis == "mru" else "amount_foreign"), positive=True)
-    if amount is None or amount > 1e12:
-        return None, "bad_amount"
-    mru, foreign, profit = compute(
-        tx_type, cur["rate_mode"], rate_c, rate_k, fee,
-        amount_mru=amount if basis == "mru" else None,
-        amount_foreign=amount if basis == "foreign" else None,
-    )
+    usd = num(d.get("usd_amount"))
+    if not usd or usd <= 0:
+        return None, "bad_usd"
+    paid = num(d.get("mru_paid"))
+    if not paid or paid <= 0 or paid > 1e12:
+        return None, "bad_mru"
+    method = get_db().execute("SELECT * FROM payment_methods WHERE id = ?",
+                              (int(num(d.get("method_id")) or 0),)).fetchone()
+    if not method:
+        return None, "bad_method"
     tx_date = str(d.get("tx_date") or "").strip()[:16]
     try:
         datetime.strptime(tx_date, "%Y-%m-%dT%H:%M")
     except ValueError:
         tx_date = now_local()
+    cost = round(usd * rate, 2)
     return {
-        "tx_date": tx_date, "type": tx_type, "currency_code": cur["code"], "rate_mode": cur["rate_mode"],
-        "amount_mru": mru, "amount_foreign": foreign, "rate_customer": rate_c, "rate_cost": rate_k,
-        "fee": fee, "profit": profit,
+        "tx_date": tx_date,
+        "usd_rate": rate,
+        "usd_amount": round(usd, 4),
+        "cost_mru": cost,
+        "mru_paid": round(paid, 2),
+        "profit": round(paid - cost, 2),
+        "method_id": method["id"],
+        "method_name": method["name"],
         "customer": str(d.get("customer") or "").strip()[:80],
         "note": str(d.get("note") or "").strip()[:300],
     }, None
 
 
-def remember_rates(db, row):
-    """The rates of the latest transaction become that currency's defaults."""
-    field = "sell_rate" if row["type"] == "sell" else "buy_rate"
-    db.execute(f"UPDATE currencies SET {field} = ?, cost_rate = ? WHERE code = ?",
-               (row["rate_customer"], row["rate_cost"], row["currency_code"]))
+@app.get("/api/settings")
+@login_required
+def api_settings():
+    return jsonify({"last_usd_rate": num(get_setting("last_usd_rate")),
+                    "last_method_id": num(get_setting("last_method_id"))})
 
 
 @app.post("/api/transactions")
@@ -382,12 +418,12 @@ def api_tx_create():
     row, e = tx_payload(request.get_json(silent=True) or {})
     if e:
         return err(e)
-    ts = now_local()
-    row.update(created_at=ts, updated_at=ts)
+    row["created_at"] = row["updated_at"] = now_local()
     db = get_db()
     cur = db.execute(f"INSERT INTO transactions ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})",
                      list(row.values()))
-    remember_rates(db, row)
+    set_setting(db, "last_usd_rate", row["usd_rate"])
+    set_setting(db, "last_method_id", row["method_id"])
     db.commit()
     return jsonify({"ok": True, "id": cur.lastrowid, "profit": row["profit"]}), 201
 
@@ -423,17 +459,23 @@ def tx_filters():
     if request.args.get("to"):
         where.append("tx_date < ?")
         params.append(request.args["to"][:10] + "T99")  # include the whole 'to' day
-    if request.args.get("currency"):
-        where.append("currency_code = ?")
-        params.append(request.args["currency"].upper())
-    if request.args.get("type") in TYPES:
-        where.append("type = ?")
-        params.append(request.args["type"])
+    if request.args.get("method_id", "").isdigit():
+        where.append("method_id = ?")
+        params.append(int(request.args["method_id"]))
     q = request.args.get("q", "").strip()
     if q:
         where.append("(customer LIKE ? OR note LIKE ?)")
         params += [f"%{q}%", f"%{q}%"]
     return (" WHERE " + " AND ".join(where)) if where else "", params
+
+
+TOTALS_SQL = ("SELECT COUNT(*) n, COALESCE(SUM(profit),0) profit, COALESCE(SUM(mru_paid),0) mru, "
+              "COALESCE(SUM(usd_amount),0) usd, COALESCE(SUM(cost_mru),0) cost FROM transactions")
+
+
+def totals(row):
+    return {"count": row["n"], "profit": round(row["profit"], 2), "mru_paid": round(row["mru"], 2),
+            "usd": round(row["usd"], 2), "cost_mru": round(row["cost"], 2)}
 
 
 @app.get("/api/transactions")
@@ -451,36 +493,22 @@ def api_tx_list():
 def api_summary():
     db = get_db()
     today = datetime.now().strftime("%Y-%m-%d")
-    month = today[:7]
-
-    def period(prefix):
-        r = db.execute("SELECT COUNT(*) n, COALESCE(SUM(profit),0) p, COALESCE(SUM(amount_mru),0) v "
-                       "FROM transactions WHERE tx_date LIKE ?", (prefix + "%",)).fetchone()
-        return {"count": r["n"], "profit": round(r["p"], 2), "volume_mru": round(r["v"], 2)}
-
     where, params = tx_filters()
-    total = db.execute(f"SELECT COUNT(*) n, COALESCE(SUM(profit),0) p, COALESCE(SUM(amount_mru),0) v "
-                       f"FROM transactions{where}", params).fetchone()
-    by_currency = db.execute(
-        f"SELECT currency_code, COUNT(*) n, SUM(profit) profit, SUM(amount_mru) volume_mru, "
-        f"SUM(CASE WHEN type='sell' THEN amount_foreign ELSE 0 END) foreign_out, "
-        f"SUM(CASE WHEN type='buy' THEN amount_foreign ELSE 0 END) foreign_in "
-        f"FROM transactions{where} GROUP BY currency_code ORDER BY profit DESC", params).fetchall()
+    by_method = db.execute(
+        f"SELECT method_id, method_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(profit) profit "
+        f"FROM transactions{where} GROUP BY method_id ORDER BY mru_paid DESC", params).fetchall()
 
     start = (datetime.now() - timedelta(days=13)).strftime("%Y-%m-%d")
-    daily_rows = {r["d"]: r["p"] for r in db.execute(
-        "SELECT substr(tx_date,1,10) d, SUM(profit) p FROM transactions WHERE tx_date >= ? GROUP BY d",
-        (start,))}
-    daily = []
-    for i in range(13, -1, -1):
-        d = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
-        daily.append({"date": d, "profit": round(daily_rows.get(d, 0), 2)})
+    per_day = {r["d"]: r["p"] for r in db.execute(
+        "SELECT substr(tx_date,1,10) d, SUM(profit) p FROM transactions WHERE tx_date >= ? GROUP BY d", (start,))}
+    daily = [{"date": d, "profit": round(per_day.get(d, 0), 2)}
+             for d in ((datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1))]
 
     return jsonify({
-        "today": period(today),
-        "month": period(month),
-        "filtered": {"count": total["n"], "profit": round(total["p"], 2), "volume_mru": round(total["v"], 2)},
-        "by_currency": [dict(r) for r in by_currency],
+        "today": totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (today + "%",)).fetchone()),
+        "month": totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (today[:7] + "%",)).fetchone()),
+        "filtered": totals(db.execute(TOTALS_SQL + where, params).fetchone()),
+        "by_method": [dict(r) for r in by_method],
         "daily": daily,
     })
 
@@ -491,16 +519,20 @@ def api_tx_csv():
     where, params = tx_filters()
     rows = get_db().execute(f"SELECT * FROM transactions{where} ORDER BY tx_date", params).fetchall()
     buf = io.StringIO()
-    buf.write("﻿")
+    buf.write("﻿")  # so Excel shows Arabic correctly
     w = csv.writer(buf)
-    w.writerow(["التاريخ", "النوع", "العملة", "المبلغ بالأوقية", "المبلغ بالعملة", "سعر الزبون",
-                "سعر التكلفة", "عمولة", "الربح", "الزبون", "ملاحظة"])
+    w.writerow(["التاريخ", "سعر الدولار", "الدولار", "التكلفة بالأوقية", "دفع الزبون", "الربح",
+                "طريقة الدفع", "الزبون", "ملاحظة"])
     for r in rows:
-        w.writerow([r["tx_date"].replace("T", " "), "بيع" if r["type"] == "sell" else "شراء", r["currency_code"],
-                    r["amount_mru"], r["amount_foreign"], r["rate_customer"], r["rate_cost"], r["fee"],
-                    r["profit"], r["customer"], r["note"]])
+        w.writerow([r["tx_date"].replace("T", " "), r["usd_rate"], r["usd_amount"], r["cost_mru"],
+                    r["mru_paid"], r["profit"], r["method_name"], r["customer"], r["note"]])
     return Response(buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={
         "Content-Disposition": f"attachment; filename=jisr-{datetime.now():%Y%m%d}.csv"})
+
+
+@app.errorhandler(413)
+def too_large(_e):
+    return err("too_large", 413)
 
 
 # ---------------------------------------------------------------------------

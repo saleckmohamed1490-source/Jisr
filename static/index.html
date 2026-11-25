@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#00704a">
-<title>جسر · دفتر الصرف</title>
+<title>جسر · دفتر المعاملات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
       <div class="brand-mark">ج</div>
       <div>
         <div class="brand-name">جسر</div>
-        <div class="brand-tag">دفتر معاملات الصرف والأرباح</div>
+        <div class="brand-tag">دفتر المعاملات والأرباح</div>
       </div>
     </div>
     <button class="btn sm ghost hidden" id="logout">خروج</button>
@@ -43,8 +43,8 @@
   <section id="app" class="hidden">
     <nav class="tabs">
       <button data-tab="home" class="on">الرئيسية</button>
-      <button data-tab="list">المعاملات</button>
-      <button data-tab="currencies">العملات والأسعار</button>
+      <button data-tab="list">المعاملات والتقارير</button>
+      <button data-tab="methods">طرق الدفع</button>
     </nav>
 
     <!-- Home -->
@@ -56,39 +56,35 @@
           <span>تعديل معاملة</span>
           <button class="btn sm ghost" id="cancel-edit">إلغاء</button>
         </div>
-        <h3 id="form-title">معاملة جديدة</h3>
+        <h3 id="form-title">تسجيل معاملة</h3>
         <form id="tx-form" novalidate>
-          <div class="seg" id="type-seg">
-            <button type="button" data-type="sell" class="on">بيع عملة<small>الزبون يدفع أوقية</small></button>
-            <button type="button" data-type="buy">شراء عملة<small>الزبون يدفع عملة</small></button>
+          <div class="field">
+            <label>الزبون دفع على</label>
+            <div class="methods" id="method-pick"></div>
           </div>
 
           <div class="field">
-            <label for="f-currency">العملة</label>
-            <select class="input" id="f-currency"></select>
-          </div>
-
-          <div class="two">
-            <div class="field">
-              <label for="f-mru" id="lbl-mru">المبلغ بالأوقية</label>
-              <input class="input ltr" id="f-mru" inputmode="decimal" autocomplete="off" placeholder="0">
-            </div>
-            <div class="field">
-              <label for="f-foreign" id="lbl-foreign">المبلغ بالعملة</label>
-              <input class="input ltr" id="f-foreign" inputmode="decimal" autocomplete="off" placeholder="0">
+            <label for="f-rate">سعر الدولار (اشتريت به)</label>
+            <div class="input-wrap">
+              <input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0">
+              <span class="suffix">أوقية / $</span>
             </div>
           </div>
 
           <div class="two">
             <div class="field">
-              <label for="f-rate-c">سعر الزبون</label>
-              <input class="input ltr" id="f-rate-c" inputmode="decimal" autocomplete="off">
-              <div class="hint rate-unit"></div>
+              <label for="f-usd">كم كلّف من دولار</label>
+              <div class="input-wrap">
+                <input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0">
+                <span class="suffix">$</span>
+              </div>
             </div>
             <div class="field">
-              <label for="f-rate-k">سعر التكلفة (سعرك)</label>
-              <input class="input ltr" id="f-rate-k" inputmode="decimal" autocomplete="off">
-              <div class="hint rate-unit"></div>
+              <label for="f-paid">كم دفع الزبون</label>
+              <div class="input-wrap">
+                <input class="input ltr" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0">
+                <span class="suffix">أوقية</span>
+              </div>
             </div>
           </div>
 
@@ -97,18 +93,17 @@
               <div style="font-weight:700">الربح</div>
               <div class="sub" id="profit-detail"></div>
             </div>
-            <div class="value" id="profit-value">0 MRU</div>
+            <div class="value" id="profit-value">—</div>
           </div>
 
           <details style="margin-bottom:14px">
             <summary class="muted" style="cursor:pointer;font-weight:700">تفاصيل إضافية (اختياري)</summary>
             <div style="margin-top:12px">
+              <div class="field"><label for="f-customer">اسم الزبون / رقمه</label><input class="input" id="f-customer"></div>
               <div class="two">
-                <div class="field"><label for="f-fee">عمولة إضافية (أوقية)</label><input class="input ltr" id="f-fee" inputmode="decimal" placeholder="0"></div>
+                <div class="field"><label for="f-note">ملاحظة</label><input class="input" id="f-note"></div>
                 <div class="field"><label for="f-date">التاريخ</label><input class="input ltr" id="f-date" type="datetime-local"></div>
               </div>
-              <div class="field"><label for="f-customer">اسم الزبون / رقمه</label><input class="input" id="f-customer"></div>
-              <div class="field"><label for="f-note">ملاحظة</label><input class="input" id="f-note"></div>
             </div>
           </details>
 
@@ -131,15 +126,13 @@
       </div>
     </div>
 
-    <!-- List -->
+    <!-- List / reports -->
     <div id="tab-list" class="hidden">
       <div class="card">
         <div class="filters">
           <div><label class="small muted">من</label><input class="input ltr" type="date" id="q-from"></div>
           <div><label class="small muted">إلى</label><input class="input ltr" type="date" id="q-to"></div>
-          <div><label class="small muted">العملة</label><select class="input" id="q-currency"></select></div>
-          <div><label class="small muted">النوع</label>
-            <select class="input" id="q-type"><option value="">الكل</option><option value="sell">بيع</option><option value="buy">شراء</option></select></div>
+          <div><label class="small muted">طريقة الدفع</label><select class="input" id="q-method"></select></div>
           <div><label class="small muted">بحث</label><input class="input" id="q-text" placeholder="زبون أو ملاحظة"></div>
         </div>
         <div class="chips" id="quick">
@@ -152,9 +145,9 @@
 
       <div class="stats" id="list-stats" style="margin-top:12px"></div>
 
-      <div class="card" id="by-currency-card">
-        <h3>حسب العملة</h3>
-        <div class="table-wrap"><table class="table" id="by-currency"></table></div>
+      <div class="card" id="by-method-card">
+        <h3>حسب طريقة الدفع</h3>
+        <div class="table-wrap"><table class="table" id="by-method"></table></div>
       </div>
 
       <div class="card">
@@ -166,38 +159,12 @@
       </div>
     </div>
 
-    <!-- Currencies -->
-    <div id="tab-currencies" class="hidden">
-      <div class="card">
-        <h3 id="cur-form-title">إضافة عملة</h3>
-        <form id="cur-form" novalidate>
-          <div class="two">
-            <div class="field"><label>رمز العملة</label><input class="input ltr" name="code" placeholder="XOF" style="text-transform:uppercase"></div>
-            <div class="field"><label>الاسم</label><input class="input" name="name" placeholder="فرنك غرب إفريقيا"></div>
-          </div>
-          <div class="two">
-            <div class="field"><label>العلم (اختياري)</label><input class="input" name="flag" placeholder="🇸🇳"></div>
-            <div class="field"><label>طريقة كتابة السعر</label>
-              <select class="input" name="rate_mode">
-                <option value="per100">كم من العملة لكل 100 أوقية</option>
-                <option value="per_unit">كم أوقية لكل 1 من العملة</option>
-              </select>
-            </div>
-          </div>
-          <div class="filters" style="margin-bottom:0">
-            <div class="field"><label>سعر البيع للزبون</label><input class="input ltr" name="sell_rate" inputmode="decimal"></div>
-            <div class="field"><label>سعر الشراء من الزبون</label><input class="input ltr" name="buy_rate" inputmode="decimal"></div>
-            <div class="field"><label>سعر التكلفة (سعرك)</label><input class="input ltr" name="cost_rate" inputmode="decimal"></div>
-          </div>
-          <p class="hint" style="margin-top:0">هذه أسعار افتراضية تُملأ تلقائياً عند تسجيل معاملة، وتتحدث بآخر سعر استعملته.</p>
-          <div class="alert error hidden" id="cur-err"></div>
-          <div class="row">
-            <button type="button" class="btn ghost hidden" id="cur-cancel">إلغاء</button>
-            <button class="btn primary">حفظ</button>
-          </div>
-        </form>
-      </div>
-      <div class="list" id="cur-list" style="margin-top:12px"></div>
+    <!-- Payment methods -->
+    <div id="tab-methods" class="hidden">
+      <p class="muted small" style="margin-top:0">اضغط على المربع لرفع شعار كل طريقة دفع.</p>
+      <div class="list" id="method-list"></div>
+      <button class="btn ghost block" id="add-method" style="margin-top:12px">+ إضافة طريقة دفع</button>
+      <input type="file" id="logo-file" accept="image/*" class="hidden">
     </div>
   </section>
 </div>
@@ -217,7 +184,6 @@ const numOf = v => { const n = parseFloat(normDigits(v)); return isFinite(n) ? n
 const pad = n => String(n).padStart(2, "0");
 const localDate = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const localDT = (d = new Date()) => `${localDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const prettyDT = s => s ? s.replace("T", " ") : "";
 
 let toastTimer;
 function toast(msg) {
@@ -230,7 +196,7 @@ function toast(msg) {
 async function api(path, opts = {}) {
   const headers = { "X-Jisr": "1" };
   let body = opts.body;
-  if (body) { headers["Content-Type"] = "application/json"; body = JSON.stringify(body); }
+  if (body && !(body instanceof FormData)) { headers["Content-Type"] = "application/json"; body = JSON.stringify(body); }
   const res = await fetch(path, { ...opts, headers, body, credentials: "same-origin" });
   let data = null; try { data = await res.json(); } catch (_) {}
   if (res.status === 401 && !path.includes("/login")) { boot(); throw new Error(data?.message || ""); }
@@ -243,11 +209,6 @@ function confirmTap(btn, fn) {
   btn.dataset.armed = "1"; const old = btn.textContent; btn.textContent = "اضغط للتأكيد";
   setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; }, 3000);
 }
-
-// Same formulas as the server (app.py: compute)
-const toMru = (f, r, mode) => mode === "per100" ? f * 100 / r : f * r;
-const toForeign = (m, r, mode) => mode === "per100" ? m * r / 100 : m / r;
-const rateUnit = c => c ? (c.rate_mode === "per100" ? `${c.code} لكل 100 أوقية` : `أوقية لكل 1 ${c.code}`) : "";
 
 // ---------------------------------------------------------------- auth
 let authMode = "login";
@@ -275,9 +236,10 @@ $("auth-form").addEventListener("submit", async e => {
 });
 $("logout").addEventListener("click", async () => { await api("/api/logout", { method: "POST" }); boot(); });
 
+let settings = {};
 async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
-  await loadCurrencies();
+  [settings] = await Promise.all([api("/api/settings"), loadMethods()]);
   resetForm();
   switchTab("home");
 }
@@ -287,157 +249,134 @@ let tab = "home";
 function switchTab(name) {
   tab = name;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  ["home", "list", "currencies"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  ["home", "list", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
   if (name === "home") loadHome();
   if (name === "list") loadList();
-  if (name === "currencies") renderCurrencies();
+  if (name === "methods") renderMethodList();
   window.scrollTo({ top: 0 });
 }
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.goto)));
 
-// ---------------------------------------------------------------- currencies
-let currencies = [];
-const curByCode = code => currencies.find(c => c.code === code);
+// ---------------------------------------------------------------- payment methods
+let methods = [];
+const methodById = id => methods.find(m => m.id === id);
+// Logo if uploaded, otherwise a colored square with the first letter.
+const logoHtml = (m, size = "") => !m ? `<span class="logo ${size}">?</span>` : m.logo_url
+  ? `<span class="logo ${size}"><img src="${esc(m.logo_url)}" alt="${esc(m.name)}"></span>`
+  : `<span class="logo ${size}" style="background:${esc(m.color)}">${esc([...m.name][0] || "")}</span>`;
 
-async function loadCurrencies() {
-  currencies = await api("/api/currencies");
-  const opts = currencies.map(c => `<option value="${esc(c.code)}">${esc(c.flag)} ${esc(c.name)} (${esc(c.code)})</option>`).join("");
-  const keep = $("f-currency").value;
-  $("f-currency").innerHTML = opts || `<option value="">أضف عملة أولاً</option>`;
-  if (keep && curByCode(keep)) $("f-currency").value = keep;
-  const qKeep = $("q-currency").value;
-  $("q-currency").innerHTML = `<option value="">الكل</option>` + opts;
-  $("q-currency").value = qKeep;
+async function loadMethods() {
+  methods = await api("/api/methods");
+  renderMethodPick();
+  const keep = $("q-method").value;
+  $("q-method").innerHTML = `<option value="">الكل</option>` + methods.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  $("q-method").value = keep;
 }
 
-let editingCur = null;
-function renderCurrencies() {
-  const rate = (v, c) => v ? `${fmt(v, 4)} <span class="muted small">${esc(rateUnit(c))}</span>` : `<span class="muted">—</span>`;
-  $("cur-list").innerHTML = currencies.map(c => `
-    <div class="item" data-id="${c.id}">
-      <div class="item-head">
-        <span style="font-size:24px">${esc(c.flag)}</span><b>${esc(c.name)}</b><span class="code">${esc(c.code)}</span>
-      </div>
-      <div class="item-body">
-        <div><div class="k">سعر البيع للزبون</div><div class="v">${rate(c.sell_rate, c)}</div></div>
-        <div><div class="k">سعر الشراء من الزبون</div><div class="v">${rate(c.buy_rate, c)}</div></div>
-        <div><div class="k">سعر التكلفة</div><div class="v">${rate(c.cost_rate, c)}</div></div>
-      </div>
-      <div class="item-actions">
-        <button class="btn sm ghost" data-act="edit">تعديل</button>
-        <button class="btn sm danger" data-act="delete" style="margin-inline-start:auto">حذف</button>
-      </div>
-    </div>`).join("") || `<div class="card center muted">لا توجد عملات بعد</div>`;
+let pickedMethod = null;
+function renderMethodPick() {
+  const active = methods.filter(m => m.is_active || m.id === pickedMethod);
+  $("method-pick").innerHTML = active.map(m => `
+    <button type="button" class="method ${m.id === pickedMethod ? "on" : ""}" data-id="${m.id}">
+      ${logoHtml(m)}<span>${esc(m.name)}</span>
+    </button>`).join("") || `<p class="muted small">أضف طريقة دفع من تبويب "طرق الدفع"</p>`;
 }
-$("cur-list").addEventListener("click", async e => {
-  const btn = e.target.closest("[data-act]"); if (!btn) return;
-  const c = currencies.find(x => x.id === +btn.closest(".item").dataset.id);
-  if (btn.dataset.act === "edit") {
-    editingCur = c.id;
-    const f = $("cur-form");
-    for (const el of f.elements) if (el.name) el.value = c[el.name] ?? "";
-    $("cur-form-title").textContent = "تعديل عملة"; $("cur-cancel").classList.remove("hidden");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } else confirmTap(btn, async () => { await api(`/api/currencies/${c.id}`, { method: "DELETE" }); await loadCurrencies(); renderCurrencies(); });
+$("method-pick").addEventListener("click", e => {
+  const b = e.target.closest(".method"); if (!b) return;
+  pickedMethod = +b.dataset.id; renderMethodPick();
 });
-function resetCurForm() {
-  editingCur = null; $("cur-form").reset();
-  $("cur-form-title").textContent = "إضافة عملة"; $("cur-cancel").classList.add("hidden"); $("cur-err").classList.add("hidden");
+
+function renderMethodList() {
+  $("method-list").innerHTML = methods.map(m => `
+    <div class="item" data-id="${m.id}">
+      <div class="method-edit">
+        <button type="button" class="btn ghost" data-act="logo" title="رفع الشعار" style="padding:4px;border-radius:18px">${logoHtml(m, "lg")}</button>
+        <div class="fields">
+          <div class="row" style="gap:8px;margin-bottom:8px">
+            <input class="input" data-f="name" value="${esc(m.name)}" style="flex:1">
+            <input class="color-input" type="color" data-f="color" value="${esc(m.color)}" title="اللون (إذا لم يوجد شعار)" style="flex:none">
+          </div>
+          <div class="item-actions">
+            <button class="btn sm primary" data-act="save">حفظ</button>
+            <button class="btn sm ghost" data-act="logo">${m.logo_url ? "تغيير الشعار" : "رفع الشعار"}</button>
+            ${m.logo_url ? `<button class="btn sm ghost" data-act="rmlogo">إزالة الشعار</button>` : ""}
+            <button class="btn sm ghost" data-act="toggle">${m.is_active ? "إخفاء" : "إظهار"}</button>
+            <button class="btn sm danger" data-act="delete">حذف</button>
+          </div>
+          ${m.is_active ? "" : `<div class="hint">مخفية من نموذج التسجيل</div>`}
+        </div>
+      </div>
+    </div>`).join("") || `<div class="card center muted">لا توجد طرق دفع</div>`;
 }
-$("cur-cancel").addEventListener("click", resetCurForm);
-$("cur-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const body = {};
-  for (const el of e.target.elements) if (el.name) body[el.name] = el.name.endsWith("rate") ? normDigits(el.value) : el.value;
+
+let logoTarget = null;
+$("method-list").addEventListener("click", async e => {
+  const btn = e.target.closest("[data-act]"); if (!btn) return;
+  const item = btn.closest(".item"); const m = methodById(+item.dataset.id);
+  const val = f => item.querySelector(`[data-f=${f}]`).value;
   try {
-    await api(editingCur ? `/api/currencies/${editingCur}` : "/api/currencies", { method: editingCur ? "PUT" : "POST", body });
-    toast("تم الحفظ"); resetCurForm(); await loadCurrencies(); renderCurrencies();
-  } catch (ex) { $("cur-err").textContent = ex.message; $("cur-err").classList.remove("hidden"); }
+    if (btn.dataset.act === "logo") { logoTarget = m.id; $("logo-file").click(); return; }
+    if (btn.dataset.act === "save") { await api(`/api/methods/${m.id}`, { method: "PUT", body: { ...m, name: val("name"), color: val("color") } }); toast("تم الحفظ"); }
+    if (btn.dataset.act === "toggle") await api(`/api/methods/${m.id}`, { method: "PUT", body: { ...m, is_active: !m.is_active } });
+    if (btn.dataset.act === "rmlogo") await api(`/api/methods/${m.id}/logo`, { method: "DELETE" });
+    if (btn.dataset.act === "delete") return confirmTap(btn, async () => {
+      await api(`/api/methods/${m.id}`, { method: "DELETE" }); await loadMethods(); renderMethodList();
+    });
+    await loadMethods(); renderMethodList();
+  } catch (ex) { toast(ex.message); }
+});
+$("logo-file").addEventListener("change", async () => {
+  const f = $("logo-file").files[0]; $("logo-file").value = "";
+  if (!f || !logoTarget) return;
+  const fd = new FormData(); fd.append("logo", f);
+  try { await api(`/api/methods/${logoTarget}/logo`, { method: "POST", body: fd }); toast("تم رفع الشعار"); await loadMethods(); renderMethodList(); }
+  catch (ex) { toast(ex.message); }
+});
+$("add-method").addEventListener("click", async () => {
+  await api("/api/methods", { method: "POST", body: { name: "طريقة جديدة", color: "#6b7280", sort_order: methods.length } });
+  await loadMethods(); renderMethodList();
+  const last = document.querySelector("#method-list .item:last-child [data-f=name]");
+  last.focus(); last.select();
 });
 
 // ---------------------------------------------------------------- transaction form
-let txType = "sell", basis = "mru", editingTx = null;
-
-function setType(t) {
-  txType = t;
-  document.querySelectorAll("#type-seg button").forEach(b => b.classList.toggle("on", b.dataset.type === t));
-  $("lbl-mru").textContent = t === "sell" ? "الأوقية التي استلمتها" : "الأوقية التي دفعتها";
-  $("lbl-foreign").textContent = t === "sell" ? "العملة التي أرسلتها" : "العملة التي استلمتها";
-}
-document.querySelectorAll("#type-seg button").forEach(b => b.addEventListener("click", () => {
-  setType(b.dataset.type); fillDefaultRates(); recalc();
-}));
-
-function fillDefaultRates() {
-  const c = curByCode($("f-currency").value); if (!c) return;
-  const cr = txType === "sell" ? c.sell_rate : c.buy_rate;
-  $("f-rate-c").value = cr ?? "";
-  $("f-rate-k").value = c.cost_rate ?? "";
-  document.querySelectorAll(".rate-unit").forEach(el => el.textContent = rateUnit(c));
-}
-$("f-currency").addEventListener("change", () => { fillDefaultRates(); recalc(); });
-
-$("f-mru").addEventListener("input", () => { basis = "mru"; recalc(); });
-$("f-foreign").addEventListener("input", () => { basis = "foreign"; recalc(); });
-["f-rate-c", "f-rate-k", "f-fee"].forEach(id => $(id).addEventListener("input", recalc));
+let editingTx = null;
 
 function recalc() {
-  const c = curByCode($("f-currency").value);
-  const rc = numOf($("f-rate-c").value), rk = numOf($("f-rate-k").value);
-  const fee = numOf($("f-fee").value) || 0;
-  const box = $("profit-value");
-  if (!c || !(rc > 0)) {
-    box.textContent = "— MRU"; box.className = "value";
-    $("profit-detail").textContent = c ? "أدخل سعر الزبون" : "";
-    return;
-  }
-  let mru, foreign;
-  if (basis === "mru") {
-    mru = numOf($("f-mru").value);
-    foreign = mru > 0 ? toForeign(mru, rc, c.rate_mode) : NaN;
-    $("f-foreign").value = foreign > 0 ? +foreign.toFixed(2) : "";
-  } else {
-    foreign = numOf($("f-foreign").value);
-    mru = foreign > 0 ? toMru(foreign, rc, c.rate_mode) : NaN;
-    $("f-mru").value = mru > 0 ? +mru.toFixed(2) : "";
-  }
-  if (!(mru > 0) || !(rk > 0)) {
-    box.textContent = "— MRU"; box.className = "value";
-    $("profit-detail").textContent = !(rk > 0) && mru > 0 ? "أدخل سعر التكلفة لحساب الربح" : "";
-    return;
-  }
-  const cost = toMru(foreign, rk, c.rate_mode);
-  const profit = (txType === "sell" ? mru - cost : cost - mru) + fee;
-  box.textContent = `${signed(profit)} MRU`;
-  box.className = "value " + cls(profit);
-  $("profit-detail").textContent = `قيمة ${fmt(foreign)} ${c.code} بسعرك = ${fmt(cost)} أوقية`;
+  const rate = numOf($("f-rate").value), usd = numOf($("f-usd").value), paid = numOf($("f-paid").value);
+  const box = $("profit-value"), detail = $("profit-detail");
+  if (rate > 0 && usd > 0) {
+    const cost = rate * usd;
+    detail.textContent = `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(cost)} أوقية`;
+    if (paid > 0) { const p = paid - cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); return; }
+  } else detail.textContent = "";
+  box.textContent = "—"; box.className = "value";
 }
+["f-rate", "f-usd", "f-paid"].forEach(id => $(id).addEventListener("input", recalc));
 
 function resetForm() {
-  editingTx = null; basis = "mru";
-  ["f-mru", "f-foreign", "f-fee", "f-customer", "f-note"].forEach(id => $(id).value = "");
+  editingTx = null;
+  ["f-usd", "f-paid", "f-customer", "f-note"].forEach(id => $(id).value = "");
+  $("f-rate").value = settings.last_usd_rate ?? "";
   $("f-date").value = localDT();
-  $("editing-bar").classList.add("hidden");
-  $("form-title").classList.remove("hidden");
+  const lastM = methodById(settings.last_method_id);
+  pickedMethod = lastM && lastM.is_active ? lastM.id : (methods.find(m => m.is_active)?.id ?? null);
+  renderMethodPick();
+  $("editing-bar").classList.add("hidden"); $("form-title").classList.remove("hidden");
   $("tx-save").textContent = "حفظ المعاملة";
   $("tx-err").classList.add("hidden");
-  setType(txType); fillDefaultRates(); recalc();
+  recalc();
 }
 $("cancel-edit").addEventListener("click", resetForm);
 
 function editTx(t) {
   switchTab("home");
-  editingTx = t.id; basis = "mru";
-  setType(t.type);
-  $("f-currency").value = t.currency_code;
-  const c = curByCode(t.currency_code);
-  document.querySelectorAll(".rate-unit").forEach(el => el.textContent = rateUnit(c));
-  $("f-mru").value = t.amount_mru; $("f-foreign").value = t.amount_foreign;
-  $("f-rate-c").value = t.rate_customer; $("f-rate-k").value = t.rate_cost;
-  $("f-fee").value = t.fee || ""; $("f-date").value = t.tx_date;
-  $("f-customer").value = t.customer; $("f-note").value = t.note;
-  if (t.fee || t.customer || t.note) document.querySelector("#tx-form details").open = true;
+  editingTx = t.id;
+  pickedMethod = t.method_id; renderMethodPick();
+  $("f-rate").value = t.usd_rate; $("f-usd").value = t.usd_amount; $("f-paid").value = t.mru_paid;
+  $("f-date").value = t.tx_date; $("f-customer").value = t.customer; $("f-note").value = t.note;
+  if (t.customer || t.note) document.querySelector("#tx-form details").open = true;
   $("editing-bar").classList.remove("hidden"); $("form-title").classList.add("hidden");
   $("tx-save").textContent = "حفظ التعديل";
   recalc();
@@ -448,38 +387,33 @@ $("tx-form").addEventListener("submit", async e => {
   e.preventDefault();
   $("tx-err").classList.add("hidden");
   const body = {
-    type: txType, currency_code: $("f-currency").value, basis,
-    amount_mru: normDigits($("f-mru").value), amount_foreign: normDigits($("f-foreign").value),
-    rate_customer: normDigits($("f-rate-c").value), rate_cost: normDigits($("f-rate-k").value),
-    fee: normDigits($("f-fee").value), tx_date: $("f-date").value,
+    method_id: pickedMethod, usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
+    mru_paid: normDigits($("f-paid").value), tx_date: $("f-date").value,
     customer: $("f-customer").value, note: $("f-note").value,
   };
   const btn = $("tx-save"); btn.disabled = true;
   try {
-    if (editingTx) await api(`/api/transactions/${editingTx}`, { method: "PUT", body });
+    if (editingTx) { await api(`/api/transactions/${editingTx}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
     else {
       const r = await api("/api/transactions", { method: "POST", body });
       toast(`تم الحفظ · الربح ${signed(r.profit)} أوقية`);
+      settings.last_usd_rate = numOf(body.usd_rate); settings.last_method_id = pickedMethod;
     }
-    if (editingTx) toast("تم حفظ التعديل");
-    await loadCurrencies();     // rates remembered as new defaults
-    resetForm();
-    loadHome();
+    resetForm(); loadHome();
   } catch (ex) { $("tx-err").textContent = ex.message; $("tx-err").classList.remove("hidden"); }
   finally { btn.disabled = false; }
 });
 
 // ---------------------------------------------------------------- rendering
 function txRow(t) {
-  const c = curByCode(t.currency_code);
-  const mru = `<bdi>${fmt(t.amount_mru)}</bdi> أوقية`, fx = `<bdi>${fmt(t.amount_foreign)} ${esc(t.currency_code)}</bdi>`;
-  const dir = t.type === "sell" ? `${mru} ← ${fx}` : `${fx} ← ${mru}`;
+  const m = methodById(t.method_id) || { name: t.method_name, color: "#6b7280" };
   return `
     <div class="item" data-id="${t.id}" style="margin-bottom:8px">
       <div class="tx">
+        ${logoHtml(m)}
         <div class="main">
-          <div class="title"><span class="tag ${t.type}">${t.type === "sell" ? "بيع" : "شراء"}</span> ${esc(c?.flag || "")} <span>${dir}</span></div>
-          <div class="meta">${esc(prettyDT(t.tx_date))} · سعر <bdi>${fmt(t.rate_customer, 4)}</bdi> · تكلفة <bdi>${fmt(t.rate_cost, 4)}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
+          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية · كلّف <bdi>${fmt(t.usd_amount)} $</bdi></div>
+          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi> · ${esc(t.method_name)} · سعر الدولار <bdi>${fmt(t.usd_rate, 4)}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
         </div>
         <div class="profit ${cls(t.profit)}">${signed(t.profit)}<small>أوقية</small></div>
       </div>
@@ -489,7 +423,7 @@ function txRow(t) {
       </div>
     </div>`;
 }
-let txCache = {};
+const txCache = {};
 function renderTxList(el, rows) {
   rows.forEach(r => txCache[r.id] = r);
   el.innerHTML = rows.map(txRow).join("") || `<p class="muted center">لا توجد معاملات</p>`;
@@ -510,8 +444,8 @@ const stat = (label, value, sub, colorCls = "") =>
 async function loadHome() {
   const [s, recent] = await Promise.all([api("/api/summary"), api("/api/transactions?limit=5")]);
   $("stats").innerHTML =
-    stat("ربح اليوم", `${signed(s.today.profit)}`, `${s.today.count} معاملة · أوقية`, cls(s.today.profit)) +
-    stat("ربح هذا الشهر", `${signed(s.month.profit)}`, `${s.month.count} معاملة · أوقية`, cls(s.month.profit));
+    stat("ربح اليوم", signed(s.today.profit), `أوقية · ${s.today.count} معاملة`, cls(s.today.profit)) +
+    stat("ربح هذا الشهر", signed(s.month.profit), `أوقية · ${s.month.count} معاملة`, cls(s.month.profit));
   const max = Math.max(1, ...s.daily.map(d => Math.abs(d.profit)));
   $("bars").innerHTML = s.daily.map(d => `
     <div class="bar" title="${d.date}: ${fmt(d.profit)} أوقية">
@@ -531,18 +465,17 @@ function setRange(r) {
   document.querySelectorAll("#quick button").forEach(b => b.classList.toggle("on", b.dataset.range === r));
 }
 document.querySelectorAll("#quick button").forEach(b => b.addEventListener("click", () => { setRange(b.dataset.range); loadList(); }));
-["q-from", "q-to", "q-currency", "q-type"].forEach(id => $(id).addEventListener("change", () => {
-  if (id.startsWith("q-f") || id.startsWith("q-to")) document.querySelectorAll("#quick button").forEach(b => b.classList.remove("on"));
-  loadList();
+["q-from", "q-to"].forEach(id => $(id).addEventListener("change", () => {
+  document.querySelectorAll("#quick button").forEach(b => b.classList.remove("on")); loadList();
 }));
+$("q-method").addEventListener("change", loadList);
 let qTimer; $("q-text").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(loadList, 300); });
 
 function listQuery() {
   const p = new URLSearchParams();
   if ($("q-from").value) p.set("from", $("q-from").value);
   if ($("q-to").value) p.set("to", $("q-to").value);
-  if ($("q-currency").value) p.set("currency", $("q-currency").value);
-  if ($("q-type").value) p.set("type", $("q-type").value);
+  if ($("q-method").value) p.set("method_id", $("q-method").value);
   if ($("q-text").value.trim()) p.set("q", $("q-text").value.trim());
   return p.toString();
 }
@@ -554,16 +487,18 @@ async function loadList() {
   $("list-stats").innerHTML =
     stat("الربح", signed(f.profit), "أوقية", cls(f.profit)) +
     stat("عدد المعاملات", f.count) +
-    stat("حجم التعامل", fmt(f.volume_mru), "أوقية");
-  $("by-currency-card").classList.toggle("hidden", !s.by_currency.length);
-  $("by-currency").innerHTML = `
-    <tr><th>العملة</th><th>عدد</th><th>أرسلت</th><th>استلمت</th><th>الربح</th></tr>` +
-    s.by_currency.map(r => `<tr>
-      <td><b>${esc(curByCode(r.currency_code)?.flag || "")} ${esc(r.currency_code)}</b></td>
-      <td class="num">${r.n}</td>
-      <td class="num">${fmt(r.foreign_out)}</td>
-      <td class="num">${fmt(r.foreign_in)}</td>
-      <td class="num ${cls(r.profit)}">${signed(r.profit)}</td></tr>`).join("");
+    stat("دفع الزبائن", fmt(f.mru_paid), "أوقية") +
+    stat("الدولار المصروف", fmt(f.usd) + " $", `تكلفته ${fmt(f.cost_mru)} أوقية`);
+  $("by-method-card").classList.toggle("hidden", !s.by_method.length);
+  $("by-method").innerHTML = `<tr><th>طريقة الدفع</th><th>عدد</th><th>المبلغ المستلم</th><th>الربح</th></tr>` +
+    s.by_method.map(r => {
+      const m = methodById(r.method_id) || { name: r.method_name, color: "#6b7280" };
+      return `<tr>
+        <td><span style="display:inline-flex;align-items:center;gap:8px">${logoHtml(m, "sm")}<b>${esc(r.method_name)}</b></span></td>
+        <td class="num">${r.n}</td>
+        <td class="num">${fmt(r.mru_paid)}</td>
+        <td class="num ${cls(r.profit)}">${signed(r.profit)}</td></tr>`;
+    }).join("");
   renderTxList($("tx-list"), rows);
 }
 
