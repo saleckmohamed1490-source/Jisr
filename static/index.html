@@ -227,13 +227,22 @@
 // ---------------------------------------------------------------- helpers
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const fmt = (n, d = 2) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d });
+// Thousands are grouped with a space ("4 100") so the comma is never ambiguous.
+const fmt = (n, d = 2) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d }).replace(/,/g, "\u202f");
 const signed = n => (n > 0 ? "+" : "") + fmt(n);
 const cls = n => n > 0 ? "pos" : n < 0 ? "neg" : "";
-const normDigits = s => String(s ?? "")
-  .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
-  .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-  .replace(/٫/g, ".").replace(/[,،\s]/g, "");
+// Accepts Arabic digits, and a comma as the decimal mark ("40,2" = 40.2).
+// A comma only means thousands when there are several ("1,000,000") or a dot is also present ("4,100.5").
+const normDigits = s => {
+  let t = String(s ?? "")
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٫،]/g, ",").replace(/[\s\u00a0\u202f]/g, "");
+  const commas = (t.match(/,/g) || []).length;
+  if (t.includes(".") || commas > 1) t = t.replace(/,/g, "");
+  else if (commas === 1) t = t.replace(",", ".");
+  return t;
+};
 const numOf = v => { const n = parseFloat(normDigits(v)); return isFinite(n) ? n : NaN; };
 const pad = n => String(n).padStart(2, "0");
 const localDate = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

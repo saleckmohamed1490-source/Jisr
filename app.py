@@ -217,7 +217,10 @@ def num(value):
     if value in (None, ""):
         return None
     try:
-        n = float(str(value).replace(",", "").strip())
+        t = "".join(str(value).replace("٫", ",").replace("،", ",").split())
+        # A single comma is a decimal mark ("40,2"); several commas, or a comma next to a dot, are thousands.
+        t = t.replace(",", "") if ("." in t or t.count(",") > 1) else t.replace(",", ".")
+        n = float(t)
     except ValueError:
         return None
     return n if n == n and abs(n) != float("inf") else None
