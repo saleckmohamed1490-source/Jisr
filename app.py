@@ -85,6 +85,7 @@ MESSAGES = {
     "bad_usd": "أدخل كم كلّف من دولار",
     "bad_mru": "أدخل المبلغ الذي دفعه الزبون",
     "bad_method": "اختر طريقة الدفع",
+    "bad_app": "اختر التطبيق",
     "bad_buy": "أدخل سعر الشراء",
     "bad_received": "أدخل المبلغ الذي استلمه الزبون",
     "bad_image": "الملف ليس صورة صالحة",
@@ -150,7 +151,8 @@ def init_db():
     if cols and "usd_rate" in cols:
         for col, ddl in (("to_currency", "TEXT NOT NULL DEFAULT ''"), ("to_amount", "REAL"),
                          ("cost_type", "TEXT NOT NULL DEFAULT 'usd'"), ("cur_buy_rate", "REAL"),
-                         ("rate_unit", "TEXT NOT NULL DEFAULT 'per_unit'")):
+                         ("rate_unit", "TEXT NOT NULL DEFAULT 'per_unit'"), ("app_id", "INTEGER"),
+                         ("app_name", "TEXT NOT NULL DEFAULT ''"), ("package", "TEXT NOT NULL DEFAULT ''")):
             if col not in cols:
                 db.execute(f"ALTER TABLE transactions ADD COLUMN {col} {ddl}")
     rate_cols = [r[1] for r in db.execute("PRAGMA table_info(rates)")]
@@ -196,12 +198,24 @@ def init_db():
         cost_type TEXT NOT NULL DEFAULT 'usd',
         cur_buy_rate REAL,
         rate_unit TEXT NOT NULL DEFAULT 'per_unit',
+        app_id INTEGER,
+        app_name TEXT NOT NULL DEFAULT '',
+        package TEXT NOT NULL DEFAULT '',
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(tx_date DESC);
+    CREATE TABLE IF NOT EXISTS apps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT '#00704a',
+        logo BLOB,
+        logo_version TEXT,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1
+    );
     CREATE TABLE IF NOT EXISTS rates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         code TEXT NOT NULL,
@@ -330,25 +344,24 @@ def api_logout():
 
 
 # ---------------------------------------------------------------------------
-# Payment methods (Bankily, Sedad, Masrivi, ...) with logos
+# Logo lists: payment methods (Bankily, Sedad, Masrivi, ...) and apps that are
+# topped up (added by the user). Both have a name, a fallback color and a logo.
 # ---------------------------------------------------------------------------
-METHOD_COLS = "id, name, color, logo_version, sort_order, is_active"
+LIST_COLS = "id, name, color, logo_version, sort_order, is_active"
+# kind -> (table, transactions id column, transactions name column)
+LISTS = {
+    "methods": ("payment_methods", "method_id", "method_name"),
+    "apps": ("apps", "app_id", "app_name"),
+}
 
 
-def method_json(r):
+def list_item_json(kind, r):
     d = dict(r)
-    d["logo_url"] = f"/logos/{r['id']}?v={r['logo_version']}" if r["logo_version"] else None
+    d["logo_url"] = f"/logos/{kind}/{r['id']}?v={r['logo_version']}" if r["logo_version"] else None
     return d
 
 
-@app.get("/api/methods")
-@login_required
-def api_methods():
-    rows = get_db().execute(f"SELECT {METHOD_COLS} FROM payment_methods ORDER BY sort_order, id").fetchall()
-    return jsonify([method_json(r) for r in rows])
-
-
-def method_payload(d):
+def list_payload(d):
     name = str(d.get("name") or "").strip()[:40]
     if not name:
         return None
@@ -363,79 +376,91 @@ def method_payload(d):
     }
 
 
-@app.post("/api/methods")
-@login_required
-def api_method_create():
-    p = method_payload(request.get_json(silent=True) or {})
-    if not p:
-        return err("required")
-    db = get_db()
-    new_id = db.execute(f"INSERT INTO payment_methods ({', '.join(p)}) VALUES ({', '.join('?' * len(p))}) "
-                        f"RETURNING id", list(p.values())).fetchone()["id"]
-    db.commit()
-    return jsonify({"ok": True, "id": new_id}), 201
+def register_list_routes(kind):
+    table, tx_id_col, tx_name_col = LISTS[kind]
+
+    @login_required
+    def list_all():
+        rows = get_db().execute(f"SELECT {LIST_COLS} FROM {table} ORDER BY sort_order, id").fetchall()
+        return jsonify([list_item_json(kind, r) for r in rows])
+
+    @login_required
+    def create():
+        p = list_payload(request.get_json(silent=True) or {})
+        if not p:
+            return err("required")
+        db = get_db()
+        new_id = db.execute(f"INSERT INTO {table} ({', '.join(p)}) VALUES ({', '.join('?' * len(p))}) RETURNING id",
+                            list(p.values())).fetchone()["id"]
+        db.commit()
+        return jsonify({"ok": True, "id": new_id}), 201
+
+    @login_required
+    def update(item_id):
+        p = list_payload(request.get_json(silent=True) or {})
+        if not p:
+            return err("required")
+        db = get_db()
+        cur = db.execute(f"UPDATE {table} SET {', '.join(f'{k} = ?' for k in p)} WHERE id = ?",
+                         list(p.values()) + [item_id])
+        db.execute(f"UPDATE transactions SET {tx_name_col} = ? WHERE {tx_id_col} = ?", (p["name"], item_id))
+        db.commit()
+        return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
+
+    @login_required
+    def delete(item_id):
+        db = get_db()
+        db.execute(f"DELETE FROM {table} WHERE id = ?", (item_id,))
+        db.commit()
+        return jsonify({"ok": True})
+
+    @login_required
+    def upload_logo(item_id):
+        db = get_db()
+        if not db.execute(f"SELECT 1 FROM {table} WHERE id = ?", (item_id,)).fetchone():
+            return err("not_found", 404)
+        f = request.files.get("logo")
+        if not f:
+            return err("bad_image")
+        try:
+            img = Image.open(f.stream)
+            img.load()
+        except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError):
+            return err("bad_image")
+        img = img.convert("RGBA")
+        img.thumbnail((256, 256))
+        buf = io.BytesIO()
+        img.save(buf, "PNG", optimize=True)
+        version = uuid.uuid4().hex[:12]
+        db.execute(f"UPDATE {table} SET logo = ?, logo_version = ? WHERE id = ?", (buf.getvalue(), version, item_id))
+        db.commit()
+        return jsonify({"ok": True, "logo_url": f"/logos/{kind}/{item_id}?v={version}"})
+
+    @login_required
+    def delete_logo(item_id):
+        db = get_db()
+        db.execute(f"UPDATE {table} SET logo = NULL, logo_version = NULL WHERE id = ?", (item_id,))
+        db.commit()
+        return jsonify({"ok": True})
+
+    base = f"/api/{kind}"
+    app.add_url_rule(base, f"{kind}_list", list_all, methods=["GET"])
+    app.add_url_rule(base, f"{kind}_create", create, methods=["POST"])
+    app.add_url_rule(f"{base}/<int:item_id>", f"{kind}_update", update, methods=["PUT"])
+    app.add_url_rule(f"{base}/<int:item_id>", f"{kind}_delete", delete, methods=["DELETE"])
+    app.add_url_rule(f"{base}/<int:item_id>/logo", f"{kind}_logo", upload_logo, methods=["POST"])
+    app.add_url_rule(f"{base}/<int:item_id>/logo", f"{kind}_logo_delete", delete_logo, methods=["DELETE"])
 
 
-@app.put("/api/methods/<int:mid>")
-@login_required
-def api_method_update(mid):
-    p = method_payload(request.get_json(silent=True) or {})
-    if not p:
-        return err("required")
-    db = get_db()
-    cur = db.execute(f"UPDATE payment_methods SET {', '.join(f'{k} = ?' for k in p)} WHERE id = ?",
-                     list(p.values()) + [mid])
-    db.execute("UPDATE transactions SET method_name = ? WHERE method_id = ?", (p["name"], mid))
-    db.commit()
-    return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
+for _kind in LISTS:
+    register_list_routes(_kind)
 
 
-@app.delete("/api/methods/<int:mid>")
-@login_required
-def api_method_delete(mid):
-    db = get_db()
-    db.execute("DELETE FROM payment_methods WHERE id = ?", (mid,))
-    db.commit()
-    return jsonify({"ok": True})
-
-
-@app.post("/api/methods/<int:mid>/logo")
-@login_required
-def api_method_logo(mid):
-    db = get_db()
-    if not db.execute("SELECT 1 FROM payment_methods WHERE id = ?", (mid,)).fetchone():
-        return err("not_found", 404)
-    f = request.files.get("logo")
-    if not f:
-        return err("bad_image")
-    try:
-        img = Image.open(f.stream)
-        img.load()
-    except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError):
-        return err("bad_image")
-    img = img.convert("RGBA")
-    img.thumbnail((256, 256))
-    buf = io.BytesIO()
-    img.save(buf, "PNG", optimize=True)
-    version = uuid.uuid4().hex[:12]
-    db.execute("UPDATE payment_methods SET logo = ?, logo_version = ? WHERE id = ?",
-               (buf.getvalue(), version, mid))
-    db.commit()
-    return jsonify({"ok": True, "logo_url": f"/logos/{mid}?v={version}"})
-
-
-@app.delete("/api/methods/<int:mid>/logo")
-@login_required
-def api_method_logo_delete(mid):
-    db = get_db()
-    db.execute("UPDATE payment_methods SET logo = NULL, logo_version = NULL WHERE id = ?", (mid,))
-    db.commit()
-    return jsonify({"ok": True})
-
-
-@app.get("/logos/<int:mid>")
-def logo_file(mid):
-    row = get_db().execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
+@app.get("/logos/<kind>/<int:item_id>")
+def logo_file(kind, item_id):
+    if kind not in LISTS:
+        abort(404)
+    row = get_db().execute(f"SELECT logo FROM {LISTS[kind][0]} WHERE id = ?", (item_id,)).fetchone()
     if not row or not row["logo"]:
         abort(404)
     resp = Response(bytes(row["logo"]), mimetype="image/png")
@@ -527,6 +552,14 @@ def tx_payload(d):
                               (int(num(d.get("method_id")) or 0),)).fetchone()
     if not method:
         return None, "bad_method"
+    app_row = None
+    if d.get("app_id") not in (None, ""):
+        app_row = get_db().execute("SELECT id, name FROM apps WHERE id = ?",
+                                   (int(num(d.get("app_id")) or 0),)).fetchone()
+        if not app_row:
+            return None, "bad_app"
+    elif d.get("require_app"):
+        return None, "bad_app"
     to_amount = num(d.get("to_amount"))
     to_amount = to_amount if to_amount and to_amount > 0 else None
     to_currency = str(d.get("to_currency") or "").strip().upper()[:6]
@@ -570,6 +603,9 @@ def tx_payload(d):
         "cost_type": cost_type,
         "cur_buy_rate": buy,
         "rate_unit": unit,
+        "app_id": app_row["id"] if app_row else None,
+        "app_name": app_row["name"] if app_row else "",
+        "package": str(d.get("package") or "").strip()[:60],
         "customer": str(d.get("customer") or "").strip()[:80],
         "note": str(d.get("note") or "").strip()[:300],
     }, None
@@ -635,10 +671,13 @@ def tx_filters():
     if request.args.get("method_id", "").isdigit():
         where.append("method_id = ?")
         params.append(int(request.args["method_id"]))
+    if request.args.get("app_id", "").isdigit():
+        where.append("app_id = ?")
+        params.append(int(request.args["app_id"]))
     q = request.args.get("q", "").strip()
     if q:
-        where.append("(customer LIKE ? OR note LIKE ?)")
-        params += [f"%{q}%", f"%{q}%"]
+        where.append("(customer LIKE ? OR note LIKE ? OR package LIKE ?)")
+        params += [f"%{q}%", f"%{q}%", f"%{q}%"]
     return (" WHERE " + " AND ".join(where)) if where else "", params
 
 
@@ -671,6 +710,10 @@ def api_summary():
         f"SELECT method_id, method_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(profit) profit "
         f"FROM transactions{where} GROUP BY method_id, method_name ORDER BY mru_paid DESC", params).fetchall()
 
+    by_app = db.execute(
+        f"SELECT app_id, app_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(usd_amount) usd, SUM(profit) profit "
+        f"FROM transactions{where} GROUP BY app_id, app_name ORDER BY profit DESC", params).fetchall()
+
     start = (datetime.now() - timedelta(days=13)).strftime("%Y-%m-%d")
     per_day = {r["d"]: r["p"] for r in db.execute(
         "SELECT substr(tx_date,1,10) d, SUM(profit) p FROM transactions WHERE tx_date >= ? GROUP BY d", (start,))}
@@ -682,6 +725,7 @@ def api_summary():
         "month": totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (today[:7] + "%",)).fetchone()),
         "filtered": totals(db.execute(TOTALS_SQL + where, params).fetchone()),
         "by_method": [dict(r) for r in by_method],
+        "by_app": [dict(r) for r in by_app],
         "daily": daily,
     })
 
@@ -694,10 +738,10 @@ def api_tx_csv():
     buf = io.StringIO()
     buf.write("﻿")  # so Excel shows Arabic correctly
     w = csv.writer(buf)
-    w.writerow(["التاريخ", "سعر الدولار", "الدولار", "التكلفة بالأوقية", "دفع الزبون", "الربح",
+    w.writerow(["التاريخ", "التطبيق", "الباقة", "سعر الدولار", "الدولار", "التكلفة بالأوقية", "دفع الزبون", "الربح",
                 "طريقة الدفع", "استلم", "العملة", "نوع التكلفة", "سعر الشراء", "الزبون", "ملاحظة"])
     for r in rows:
-        w.writerow([r["tx_date"].replace("T", " "), r["usd_rate"], r["usd_amount"], r["cost_mru"],
+        w.writerow([r["tx_date"].replace("T", " "), r["app_name"], r["package"], r["usd_rate"], r["usd_amount"], r["cost_mru"],
                     r["mru_paid"], r["profit"], r["method_name"], r["to_amount"] or "", r["to_currency"],
                     "عبر الدولار" if r["cost_type"] == "usd" else "سعر شراء", r["cur_buy_rate"] or "",
                     r["customer"], r["note"]])

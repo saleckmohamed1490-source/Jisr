@@ -45,7 +45,7 @@
       <button data-tab="home" class="on">الرئيسية</button>
       <button data-tab="rates">أسعار الصرف</button>
       <button data-tab="list">المعاملات والتقارير</button>
-      <button data-tab="methods">طرق الدفع</button>
+      <button data-tab="methods">التطبيقات وطرق الدفع</button>
     </nav>
 
     <!-- Home -->
@@ -72,26 +72,28 @@
           <label>الزبون دفع على</label>
           <div class="methods" id="calc-method-pick"></div>
         </div>
-        <button type="button" class="btn ghost block" id="calc-to-tx">تسجيل هذا كمعاملة ↓</button>
       </div>
 
       <!-- Save a transaction (independent) -->
       <div class="card" id="tx-card">
         <div class="editing-bar hidden" id="editing-bar">
-          <span>تعديل معاملة</span>
+          <span>تعديل عملية شحن</span>
           <button class="btn sm ghost" id="cancel-edit">إلغاء</button>
         </div>
-        <h3 id="form-title">تسجيل معاملة</h3>
+        <h3 id="form-title">تسجيل عملية شحن تطبيق</h3>
         <form id="tx-form" novalidate>
-          <div class="field"><label for="tx-cur">العملة</label><select class="input" id="tx-cur"></select></div>
+          <div class="field">
+            <label>التطبيق</label>
+            <div class="methods" id="app-pick"></div>
+          </div>
           <div class="two">
             <div class="field">
               <label for="f-paid">الزبون دفع</label>
               <div class="input-wrap"><input class="input ltr" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
             </div>
             <div class="field">
-              <label for="f-fx">استلم</label>
-              <div class="input-wrap"><input class="input ltr" id="f-fx" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix" id="f-code"></span></div>
+              <label for="f-package">الباقة / الكمية (اختياري)</label>
+              <input class="input" id="f-package" dir="auto" autocomplete="off" placeholder="مثلاً 660 UC">
             </div>
           </div>
 
@@ -100,28 +102,14 @@
             <div class="methods" id="method-pick"></div>
           </div>
 
-          <!-- Cost: currencies bought with dollars -->
-          <div id="cost-usd">
-            <div class="cost-tag">💵 هذه العملة نتعامل بها عبر الدولار</div>
-            <div class="two">
-              <div class="field">
-                <label for="f-rate">سعر الدولار</label>
-                <div class="input-wrap"><input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
-              </div>
-              <div class="field">
-                <label for="f-usd">كم كلّف من دولار</label>
-                <div class="input-wrap"><input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">$</span></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Cost: currencies with their own buy price -->
-          <div id="cost-direct" class="hidden">
-            <div class="cost-tag">🔁 هذه العملة نشتريها ونبيعها بسعر</div>
+          <div class="two">
             <div class="field">
-              <label for="f-buy">سعر الشراء (اشترينا به)</label>
-              <input class="input ltr" id="f-buy" inputmode="decimal" autocomplete="off" placeholder="0">
-              <div class="hint" id="f-buy-hint"></div>
+              <label for="f-rate">سعر الدولار</label>
+              <div class="input-wrap"><input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
+            </div>
+            <div class="field">
+              <label for="f-usd">كم كلّف من دولار</label>
+              <div class="input-wrap"><input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">$</span></div>
             </div>
           </div>
 
@@ -145,7 +133,7 @@
           </details>
 
           <div class="alert error hidden" id="tx-err"></div>
-          <button class="btn primary block" id="tx-save">حفظ المعاملة</button>
+          <button class="btn primary block" id="tx-save">حفظ عملية الشحن</button>
         </form>
       </div>
 
@@ -169,8 +157,9 @@
         <div class="filters">
           <div><label class="small muted">من</label><input class="input ltr" type="date" id="q-from"></div>
           <div><label class="small muted">إلى</label><input class="input ltr" type="date" id="q-to"></div>
+          <div><label class="small muted">التطبيق</label><select class="input" id="q-app"></select></div>
           <div><label class="small muted">طريقة الدفع</label><select class="input" id="q-method"></select></div>
-          <div><label class="small muted">بحث</label><input class="input" id="q-text" placeholder="زبون أو ملاحظة"></div>
+          <div><label class="small muted">بحث</label><input class="input" id="q-text" placeholder="زبون، باقة أو ملاحظة"></div>
         </div>
         <div class="chips" id="quick">
           <button data-range="today">اليوم</button>
@@ -181,6 +170,11 @@
       </div>
 
       <div class="stats" id="list-stats" style="margin-top:12px"></div>
+
+      <div class="card" id="by-app-card">
+        <h3>حسب التطبيق</h3>
+        <div class="table-wrap"><table class="table" id="by-app"></table></div>
+      </div>
 
       <div class="card" id="by-method-card">
         <h3>حسب طريقة الدفع</h3>
@@ -245,9 +239,13 @@
 
     <!-- Payment methods -->
     <div id="tab-methods" class="hidden">
-      <p class="muted small" style="margin-top:0">اضغط على المربع لرفع شعار كل طريقة دفع.</p>
-      <div class="list" id="method-list"></div>
-      <button class="btn ghost block" id="add-method" style="margin-top:12px">+ إضافة طريقة دفع</button>
+      <p class="muted small" style="margin-top:0">اضغط على المربع لرفع الشعار.</p>
+      <h3>التطبيقات</h3>
+      <div class="list" id="apps-list"></div>
+      <button class="btn ghost block" data-add="apps" style="margin:12px 0 24px">+ إضافة تطبيق</button>
+      <h3>طرق الدفع</h3>
+      <div class="list" id="methods-list"></div>
+      <button class="btn ghost block" data-add="methods" style="margin-top:12px">+ إضافة طريقة دفع</button>
       <input type="file" id="logo-file" accept="image/*" class="hidden">
     </div>
   </section>
@@ -332,7 +330,7 @@ $("logout").addEventListener("click", async () => { await api("/api/logout", { m
 let settings = {};
 async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
-  [settings] = await Promise.all([api("/api/settings"), loadMethods(), loadRates()]);
+  [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
   resetForm();
   switchTab("home");
 }
@@ -345,52 +343,63 @@ function switchTab(name) {
   ["home", "rates", "list", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
   if (name === "home") loadHome();
   if (name === "list") loadList();
-  if (name === "methods") renderMethodList();
+  if (name === "methods") { renderList("apps"); renderList("methods"); }
   if (name === "rates") renderRates();
   window.scrollTo({ top: 0 });
 }
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.goto)));
 
-// ---------------------------------------------------------------- payment methods
-let methods = [];
+// ---------------------------------------------------------------- apps & payment methods
+let methods = [], apps = [];
 const methodById = id => methods.find(m => m.id === id);
+const appById = id => apps.find(a => a.id === id);
+const LIST_LABELS = {
+  apps: { empty: "لا توجد تطبيقات بعد، أضف تطبيقاتك", add: "تطبيق جديد", hidden: "مخفي من نموذج الشحن" },
+  methods: { empty: "لا توجد طرق دفع", add: "طريقة جديدة", hidden: "مخفية من نموذج التسجيل" },
+};
+const listOf = kind => kind === "apps" ? apps : methods;
 // Logo if uploaded, otherwise a colored square with the first letter.
 const logoHtml = (m, size = "") => !m ? `<span class="logo ${size}">?</span>` : m.logo_url
   ? `<span class="logo ${size}"><img src="${esc(m.logo_url)}" alt="${esc(m.name)}"></span>`
   : `<span class="logo ${size}" style="background:${esc(m.color)}">${esc([...m.name][0] || "")}</span>`;
 
-async function loadMethods() {
-  methods = await api("/api/methods");
-  renderMethodPick();
-  const keep = $("q-method").value;
-  $("q-method").innerHTML = `<option value="">الكل</option>` + methods.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
-  $("q-method").value = keep;
+function fillFilter(sel, items) {
+  const keep = sel.value;
+  sel.innerHTML = `<option value="">الكل</option>` + items.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  sel.value = keep;
+}
+async function loadLists() {
+  [methods, apps] = await Promise.all([api("/api/methods"), api("/api/apps")]);
+  renderPicks();
+  fillFilter($("q-method"), methods);
+  fillFilter($("q-app"), apps);
 }
 
-// Payment-method tiles: one set in the calculator, one in the transaction form.
-let pickedMethod = null, calcMethod = null;
-const methodTiles = selected => methods.filter(m => m.is_active || m.id === selected).map(m => `
+// Tiles: payment method in the calculator and in the top-up form; app in the top-up form.
+let pickedMethod = null, calcMethod = null, pickedApp = null;
+const tiles = (items, selected, emptyMsg) => items.filter(m => m.is_active || m.id === selected).map(m => `
     <button type="button" class="method ${m.id === selected ? "on" : ""}" data-id="${m.id}">
       ${logoHtml(m)}<span>${esc(m.name)}</span>
-    </button>`).join("") || `<p class="muted small">أضف طريقة دفع من تبويب "طرق الدفع"</p>`;
-function renderMethodPick() {
+    </button>`).join("") || `<p class="muted small">${emptyMsg}</p>`;
+function renderPicks() {
   if (calcMethod === null || !methods.some(m => m.id === calcMethod && m.is_active)) calcMethod = pickedMethod;
-  $("method-pick").innerHTML = methodTiles(pickedMethod);
-  $("calc-method-pick").innerHTML = methodTiles(calcMethod);
+  $("method-pick").innerHTML = tiles(methods, pickedMethod, "أضف طريقة دفع من تبويب \"التطبيقات وطرق الدفع\"");
+  $("calc-method-pick").innerHTML = tiles(methods, calcMethod, "أضف طريقة دفع من تبويب \"التطبيقات وطرق الدفع\"");
+  $("app-pick").innerHTML = tiles(apps, pickedApp, "أضف تطبيقاتك من تبويب \"التطبيقات وطرق الدفع\"");
 }
-$("method-pick").addEventListener("click", e => {
-  const b = e.target.closest(".method"); if (!b) return;
-  pickedMethod = +b.dataset.id; renderMethodPick();
+const renderMethodPick = renderPicks;
+const onTile = (id, fn) => $(id).addEventListener("click", e => {
+  const b = e.target.closest(".method"); if (b) { fn(+b.dataset.id); renderPicks(); }
 });
-$("calc-method-pick").addEventListener("click", e => {
-  const b = e.target.closest(".method"); if (!b) return;
-  calcMethod = +b.dataset.id; renderMethodPick();
-});
+onTile("method-pick", id => pickedMethod = id);
+onTile("calc-method-pick", id => calcMethod = id);
+onTile("app-pick", id => { pickedApp = id; try { localStorage.setItem("jisr_app", id); } catch (_) {} });
 
-function renderMethodList() {
-  $("method-list").innerHTML = methods.map(m => `
-    <div class="item" data-id="${m.id}">
+function renderList(kind) {
+  const L = LIST_LABELS[kind];
+  $(kind + "-list").innerHTML = listOf(kind).map(m => `
+    <div class="item" data-id="${m.id}" data-kind="${kind}">
       <div class="method-edit">
         <button type="button" class="btn ghost" data-act="logo" title="رفع الشعار" style="padding:4px;border-radius:18px">${logoHtml(m, "lg")}</button>
         <div class="fields">
@@ -405,40 +414,45 @@ function renderMethodList() {
             <button class="btn sm ghost" data-act="toggle">${m.is_active ? "إخفاء" : "إظهار"}</button>
             <button class="btn sm danger" data-act="delete">حذف</button>
           </div>
-          ${m.is_active ? "" : `<div class="hint">مخفية من نموذج التسجيل</div>`}
+          ${m.is_active ? "" : `<div class="hint">${L.hidden}</div>`}
         </div>
       </div>
-    </div>`).join("") || `<div class="card center muted">لا توجد طرق دفع</div>`;
+    </div>`).join("") || `<div class="card center muted">${L.empty}</div>`;
 }
+async function refreshLists() { await loadLists(); renderList("apps"); renderList("methods"); }
 
 let logoTarget = null;
-$("method-list").addEventListener("click", async e => {
+$("tab-methods").addEventListener("click", async e => {
+  const add = e.target.closest("[data-add]");
+  if (add) {
+    const kind = add.dataset.add;
+    await api(`/api/${kind}`, { method: "POST", body: { name: LIST_LABELS[kind].add, color: "#6b7280", sort_order: listOf(kind).length } });
+    await refreshLists();
+    const last = document.querySelector(`#${kind}-list .item:last-child [data-f=name]`);
+    last.focus(); last.select();
+    return;
+  }
   const btn = e.target.closest("[data-act]"); if (!btn) return;
-  const item = btn.closest(".item"); const m = methodById(+item.dataset.id);
+  const item = btn.closest(".item"), kind = item.dataset.kind;
+  const m = listOf(kind).find(x => x.id === +item.dataset.id);
   const val = f => item.querySelector(`[data-f=${f}]`).value;
   try {
-    if (btn.dataset.act === "logo") { logoTarget = m.id; $("logo-file").click(); return; }
-    if (btn.dataset.act === "save") { await api(`/api/methods/${m.id}`, { method: "PUT", body: { ...m, name: val("name"), color: val("color") } }); toast("تم الحفظ"); }
-    if (btn.dataset.act === "toggle") await api(`/api/methods/${m.id}`, { method: "PUT", body: { ...m, is_active: !m.is_active } });
-    if (btn.dataset.act === "rmlogo") await api(`/api/methods/${m.id}/logo`, { method: "DELETE" });
+    if (btn.dataset.act === "logo") { logoTarget = { kind, id: m.id }; $("logo-file").click(); return; }
+    if (btn.dataset.act === "save") { await api(`/api/${kind}/${m.id}`, { method: "PUT", body: { ...m, name: val("name"), color: val("color") } }); toast("تم الحفظ"); }
+    if (btn.dataset.act === "toggle") await api(`/api/${kind}/${m.id}`, { method: "PUT", body: { ...m, is_active: !m.is_active } });
+    if (btn.dataset.act === "rmlogo") await api(`/api/${kind}/${m.id}/logo`, { method: "DELETE" });
     if (btn.dataset.act === "delete") return confirmTap(btn, async () => {
-      await api(`/api/methods/${m.id}`, { method: "DELETE" }); await loadMethods(); renderMethodList();
+      await api(`/api/${kind}/${m.id}`, { method: "DELETE" }); await refreshLists();
     });
-    await loadMethods(); renderMethodList();
+    await refreshLists();
   } catch (ex) { toast(ex.message); }
 });
 $("logo-file").addEventListener("change", async () => {
   const f = $("logo-file").files[0]; $("logo-file").value = "";
   if (!f || !logoTarget) return;
   const fd = new FormData(); fd.append("logo", f);
-  try { await api(`/api/methods/${logoTarget}/logo`, { method: "POST", body: fd }); toast("تم رفع الشعار"); await loadMethods(); renderMethodList(); }
+  try { await api(`/api/${logoTarget.kind}/${logoTarget.id}/logo`, { method: "POST", body: fd }); toast("تم رفع الشعار"); await refreshLists(); }
   catch (ex) { toast(ex.message); }
-});
-$("add-method").addEventListener("click", async () => {
-  await api("/api/methods", { method: "POST", body: { name: "طريقة جديدة", color: "#6b7280", sort_order: methods.length } });
-  await loadMethods(); renderMethodList();
-  const last = document.querySelector("#method-list .item:last-child [data-f=name]");
-  last.focus(); last.select();
 });
 
 // ---------------------------------------------------------------- exchange rates
@@ -464,9 +478,7 @@ async function loadRates() {
   rates = await api("/api/rates");
   renderRateStrip();
   fillCurSelect($("calc-cur"), "jisr_calc_cur");
-  fillCurSelect($("tx-cur"), "jisr_tx_cur");
   calc("mru");
-  if (!editingTx) onTxCurrency(false);
 }
 
 function renderRateStrip() {
@@ -538,7 +550,7 @@ $("rate-form").addEventListener("submit", async e => {
     $("rate-form-card").classList.add("hidden");
     await loadRates(); renderRates();
     settings = await api("/api/settings");
-    if (!editingTx && !$("f-usd").value) { $("f-rate").value = settings.usd_rate ?? ""; onTxCurrency(false); }
+    if (!editingTx && !$("f-usd").value) { $("f-rate").value = settings.usd_rate ?? ""; recalc(); }
   } catch (ex) { $("rate-err").textContent = ex.message; $("rate-err").classList.remove("hidden"); }
 });
 $("rates-list").addEventListener("click", async e => {
@@ -580,103 +592,46 @@ $("calc-cur").addEventListener("change", () => {
   try { localStorage.setItem("jisr_calc_cur", $("calc-cur").value); } catch (_) {}
   calc("mru");
 });
-$("calc-to-tx").addEventListener("click", () => {
-  if (editingTx) resetForm();
-  $("tx-cur").value = $("calc-cur").value;
-  onTxCurrency(true);
-  $("f-paid").value = $("c-mru").value; $("f-fx").value = $("c-fx").value;
-  if (calcMethod) { pickedMethod = calcMethod; renderMethodPick(); }
-  syncUsdFromFx(); recalc();
-  $("tx-card").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// ---------------------------------------------------------------- app top-up form (independent)
+// Top-ups are paid with dollars: profit = customer paid - dollars x dollar price.
+let editingTx = null;
 
-// ---------------------------------------------------------------- transaction form (independent)
-let editingTx = null, usdTouched = false;
-const txRate = () => rates.find(x => x.id === +$("tx-cur").value);
-const txMode = () => costMode(txRate());
-
-// Currency changed in the transaction form: show the right cost fields and default prices.
-function onTxCurrency(resetPrices) {
-  const r = txRate(), mode = txMode();
-  $("f-code").textContent = r ? r.code : "";
-  $("cost-usd").classList.toggle("hidden", mode !== "usd");
-  $("cost-direct").classList.toggle("hidden", mode !== "direct");
-  $("cost-usd").querySelector(".cost-tag").classList.toggle("hidden", isUsdRow(r));
-  if (r && mode === "direct") {
-    if (resetPrices || !$("f-buy").value) $("f-buy").value = r.buy_rate ?? "";
-    $("f-buy-hint").textContent = unitHint(r);
-  }
-  recalc();
-}
-$("tx-cur").addEventListener("change", () => {
-  try { localStorage.setItem("jisr_tx_cur", $("tx-cur").value); } catch (_) {}
-  onTxCurrency(true); txConvert("mru");
-});
-
-// Paid <-> received, using the currency's sell rate (only fills the other field when a rate exists).
-function txConvert(from) {
-  const r = txRate(), v = sellOf(r);
-  if (!v) return;
-  if (from === "mru") { const m = numOf($("f-paid").value); $("f-fx").value = m > 0 ? +fxFromMru(r, v, m).toFixed(2) : ""; }
-  else { const x = numOf($("f-fx").value); $("f-paid").value = x > 0 ? +mruFromFx(r, v, x).toFixed(2) : ""; }
-}
-// When the customer receives dollars, the dollar cost is the amount received (unless typed by hand).
-function syncUsdFromFx() {
-  if (isUsdRow(txRate()) && !usdTouched) $("f-usd").value = $("f-fx").value;
-}
-$("f-paid").addEventListener("input", () => { txConvert("mru"); syncUsdFromFx(); recalc(); });
-$("f-fx").addEventListener("input", () => { txConvert("fx"); syncUsdFromFx(); recalc(); });
-$("f-usd").addEventListener("input", () => { usdTouched = true; recalc(); });
-["f-rate", "f-buy"].forEach(id => $(id).addEventListener("input", recalc));
-
-function txCost() {
-  const r = txRate();
-  if (txMode() === "direct") {
-    const buy = numOf($("f-buy").value), fx = numOf($("f-fx").value);
-    if (!(buy > 0) || !(fx > 0) || !r) return { cost: NaN, text: !(fx > 0) ? "اكتب المبلغ الذي استلمه الزبون" : "اكتب سعر الشراء" };
-    const cost = mruFromFx(r, buy, fx);
-    return { cost, text: `التكلفة: ${fmt(fx)} ${r.code} بسعر الشراء = ${fmt(cost)} أوقية` };
-  }
-  const rate = numOf($("f-rate").value), usd = numOf($("f-usd").value);
-  if (!(rate > 0) || !(usd > 0)) return { cost: NaN, text: "" };
-  return { cost: rate * usd, text: `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(rate * usd)} أوقية` };
-}
 function recalc() {
-  const { cost, text } = txCost(), paid = numOf($("f-paid").value);
+  const rate = numOf($("f-rate").value), usd = numOf($("f-usd").value), paid = numOf($("f-paid").value);
   const box = $("profit-value");
-  $("profit-detail").textContent = text;
-  if (cost > 0 && paid > 0) { const p = paid - cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); }
-  else { box.textContent = "—"; box.className = "value"; }
+  if (rate > 0 && usd > 0) {
+    const cost = rate * usd;
+    $("profit-detail").textContent = `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(cost)} أوقية`;
+    if (paid > 0) { const p = paid - cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); return; }
+  } else $("profit-detail").textContent = "";
+  box.textContent = "—"; box.className = "value";
 }
+["f-rate", "f-usd", "f-paid"].forEach(id => $(id).addEventListener("input", recalc));
 
 function resetForm() {
-  editingTx = null; usdTouched = false;
-  ["f-usd", "f-paid", "f-fx", "f-buy", "f-customer", "f-note"].forEach(id => $(id).value = "");
+  editingTx = null;
+  ["f-usd", "f-paid", "f-package", "f-customer", "f-note"].forEach(id => $(id).value = "");
   $("f-rate").value = settings.usd_rate ?? "";
   $("f-date").value = localDT();
   const lastM = methodById(settings.last_method_id);
   pickedMethod = lastM && lastM.is_active ? lastM.id : (methods.find(m => m.is_active)?.id ?? null);
-  renderMethodPick();
+  let lastApp = null; try { lastApp = +localStorage.getItem("jisr_app"); } catch (_) {}
+  const la = appById(lastApp);
+  pickedApp = la && la.is_active ? la.id : (apps.find(a => a.is_active)?.id ?? null);
+  renderPicks();
   $("editing-bar").classList.add("hidden"); $("form-title").classList.remove("hidden");
-  $("tx-save").textContent = "حفظ المعاملة";
+  $("tx-save").textContent = "حفظ عملية الشحن";
   $("tx-err").classList.add("hidden");
-  onTxCurrency(true);
+  recalc();
 }
 $("cancel-edit").addEventListener("click", resetForm);
 
 function editTx(t) {
   switchTab("home");
-  editingTx = t.id; usdTouched = true;
-  pickedMethod = t.method_id; renderMethodPick();
-  const tr = rates.find(r => r.code === t.to_currency);
-  if (tr) $("tx-cur").value = tr.id;
-  $("f-paid").value = t.mru_paid; $("f-fx").value = t.to_amount ?? "";
+  editingTx = t.id;
+  pickedMethod = t.method_id; pickedApp = t.app_id; renderPicks();
+  $("f-paid").value = t.mru_paid; $("f-package").value = t.package || "";
   $("f-rate").value = t.usd_rate || (settings.usd_rate ?? ""); $("f-usd").value = t.usd_amount || "";
-  $("f-buy").value = t.cur_buy_rate ?? "";
-  onTxCurrency(false);
-  if (t.cost_type === "direct" && txMode() !== "direct") {   // currency setting changed since; keep the saved way
-    $("cost-usd").classList.add("hidden"); $("cost-direct").classList.remove("hidden");
-  }
   $("f-date").value = t.tx_date; $("f-customer").value = t.customer; $("f-note").value = t.note;
   if (t.customer || t.note) document.querySelector("#tx-form details").open = true;
   $("editing-bar").classList.remove("hidden"); $("form-title").classList.add("hidden");
@@ -688,14 +643,10 @@ function editTx(t) {
 $("tx-form").addEventListener("submit", async e => {
   e.preventDefault();
   $("tx-err").classList.add("hidden");
-  const r = txRate();
-  const direct = !$("cost-direct").classList.contains("hidden");
   const body = {
+    app_id: pickedApp, require_app: true, package: $("f-package").value,
     method_id: pickedMethod, mru_paid: normDigits($("f-paid").value), tx_date: $("f-date").value,
-    to_currency: r ? r.code : "", to_amount: normDigits($("f-fx").value),
-    cost_type: direct ? "direct" : "usd",
-    usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
-    cur_buy_rate: normDigits($("f-buy").value), rate_unit: r ? r.unit : "per_unit",
+    cost_type: "usd", usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
     customer: $("f-customer").value, note: $("f-note").value,
   };
   const btn = $("tx-save"); btn.disabled = true;
@@ -714,15 +665,21 @@ $("tx-form").addEventListener("submit", async e => {
 // ---------------------------------------------------------------- rendering
 function txRow(t) {
   const m = methodById(t.method_id) || { name: t.method_name, color: "#6b7280" };
+  const a = t.app_id ? (appById(t.app_id) || { name: t.app_name, color: "#6b7280" }) : null;
+  const title = a
+    ? `شحن ${esc(t.app_name)}${t.package ? ` · <bdi>${esc(t.package)}</bdi>` : ""}`
+    : `دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""}`;
+  const cost = t.cost_type === "direct"
+    ? `سعر الشراء <bdi>${fmt(t.cur_buy_rate, 4)}</bdi>`
+    : `كلّف <bdi>${fmt(t.usd_amount)} $</bdi> بسعر <bdi>${fmt(t.usd_rate, 4)}</bdi>`;
   return `
     <div class="item" data-id="${t.id}" style="margin-bottom:8px">
       <div class="tx">
-        ${logoHtml(m)}
+        ${logoHtml(a || m)}
         <div class="main">
-          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""}${t.cost_type === "direct" ? "" : ` · كلّف <bdi>${fmt(t.usd_amount)} $</bdi>`}</div>
-          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi> · ${esc(t.method_name)} · ${t.cost_type === "direct"
-            ? `سعر الشراء <bdi>${fmt(t.cur_buy_rate, 4)}</bdi>`
-            : `سعر الدولار <bdi>${fmt(t.usd_rate, 4)}</bdi>`}${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
+          <div class="title">${title}</div>
+          <div class="meta">${a ? `دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية على ` : ""}${esc(t.method_name)} · ${cost}</div>
+          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
         </div>
         <div class="profit ${cls(t.profit)}">${signed(t.profit)}<small>أوقية</small></div>
       </div>
@@ -778,6 +735,7 @@ document.querySelectorAll("#quick button").forEach(b => b.addEventListener("clic
   document.querySelectorAll("#quick button").forEach(b => b.classList.remove("on")); loadList();
 }));
 $("q-method").addEventListener("change", loadList);
+$("q-app").addEventListener("change", loadList);
 let qTimer; $("q-text").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(loadList, 300); });
 
 function listQuery() {
@@ -785,6 +743,7 @@ function listQuery() {
   if ($("q-from").value) p.set("from", $("q-from").value);
   if ($("q-to").value) p.set("to", $("q-to").value);
   if ($("q-method").value) p.set("method_id", $("q-method").value);
+  if ($("q-app").value) p.set("app_id", $("q-app").value);
   if ($("q-text").value.trim()) p.set("q", $("q-text").value.trim());
   return p.toString();
 }
@@ -798,6 +757,18 @@ async function loadList() {
     stat("عدد المعاملات", f.count) +
     stat("دفع الزبائن", fmt(f.mru_paid), "أوقية") +
     stat("الدولار المصروف", fmt(f.usd) + " $", `تكلفته ${fmt(f.cost_mru)} أوقية`);
+  const withApp = s.by_app.filter(r => r.app_id);
+  $("by-app-card").classList.toggle("hidden", !withApp.length);
+  $("by-app").innerHTML = `<tr><th>التطبيق</th><th>عدد</th><th>دفع الزبائن</th><th>الدولار</th><th>الربح</th></tr>` +
+    withApp.map(r => {
+      const a = appById(r.app_id) || { name: r.app_name, color: "#6b7280" };
+      return `<tr>
+        <td><span style="display:inline-flex;align-items:center;gap:8px">${logoHtml(a, "sm")}<b>${esc(r.app_name)}</b></span></td>
+        <td class="num">${r.n}</td>
+        <td class="num">${fmt(r.mru_paid)}</td>
+        <td class="num">${fmt(r.usd)} $</td>
+        <td class="num ${cls(r.profit)}">${signed(r.profit)}</td></tr>`;
+    }).join("");
   $("by-method-card").classList.toggle("hidden", !s.by_method.length);
   $("by-method").innerHTML = `<tr><th>طريقة الدفع</th><th>عدد</th><th>المبلغ المستلم</th><th>الربح</th></tr>` +
     s.by_method.map(r => {
