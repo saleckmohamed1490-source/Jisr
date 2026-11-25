@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#00704a">
+<title>جسر · Jisr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="brand-mark">ج</div>
+      <div>
+        <div class="brand-name" data-i18n="app_name">جسر</div>
+        <div class="brand-tag" data-i18n="tagline"></div>
+      </div>
+    </a>
+    <div class="lang-switch">
+      <button data-lang="ar">ع</button><button data-lang="fr">FR</button><button data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <div class="steps" id="steps">
+    <span data-i18n="step_country"></span>
+    <span data-i18n="step_amount"></span>
+    <span data-i18n="step_pay"></span>
+    <span data-i18n="step_done"></span>
+  </div>
+
+  <!-- Step 1: country -->
+  <section id="s-country">
+    <h2 data-i18n="choose_country"></h2>
+    <div class="countries" id="country-list"><p class="muted" data-i18n="loading"></p></div>
+  </section>
+
+  <!-- Step 2: amount + number -->
+  <section id="s-amount" class="hidden">
+    <div class="card">
+      <div class="country" style="cursor:default;border:0;padding:0 0 14px;box-shadow:none">
+        <span class="flag" id="sel-flag"></span>
+        <div class="info">
+          <div class="name" id="sel-name"></div>
+          <div class="meta"><span data-i18n="rate_label"></span>: <b id="sel-rate"></b></div>
+        </div>
+      </div>
+      <form id="amount-form" novalidate>
+        <div class="field">
+          <label for="amount" data-i18n="amount_mru"></label>
+          <div class="input-wrap">
+            <input id="amount" class="input big ltr" inputmode="decimal" autocomplete="off" placeholder="0">
+            <span class="suffix">MRU</span>
+          </div>
+          <div class="field-error" id="amount-err"></div>
+        </div>
+        <div class="converter-result">
+          <span data-i18n="amount_receive"></span>
+          <span class="value"><span id="receive">0</span> <small id="receive-cur"></small></span>
+        </div>
+        <div class="field">
+          <label for="number" id="number-label"></label>
+          <input id="number" class="input ltr" inputmode="tel" autocomplete="tel" placeholder="+232 ...">
+          <div class="field-error" id="number-err"></div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn ghost" id="back-1" data-i18n="back"></button>
+          <button type="submit" class="btn primary" data-i18n="send"></button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Step 3: payment -->
+  <section id="s-pay" class="hidden">
+    <div class="card">
+      <h3 data-i18n="summary"></h3>
+      <dl class="kv">
+        <div><dt data-i18n="pay_amount"></dt><dd id="sum-pay"></dd></div>
+        <div><dt data-i18n="receive_amount"></dt><dd id="sum-receive"></dd></div>
+        <div><dt data-i18n="receiving_number"></dt><dd id="sum-number"></dd></div>
+      </dl>
+    </div>
+    <div class="card">
+      <h3 data-i18n="payment_accounts"></h3>
+      <div id="accounts"></div>
+    </div>
+    <div class="card">
+      <h3 data-i18n="upload_receipt"></h3>
+      <label class="upload" id="upload">
+        <input type="file" id="receipt" accept="image/*">
+        <div><b data-i18n="choose_file"></b></div>
+        <div class="muted small" data-i18n="receipt_hint"></div>
+        <img id="preview" class="hidden" alt="">
+      </label>
+      <div class="field-error" id="receipt-err"></div>
+      <div class="alert error hidden" id="pay-err" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="back-2" data-i18n="back"></button>
+        <button class="btn primary" id="submit" data-i18n="confirm_order"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 4: done -->
+  <section id="s-done" class="hidden">
+    <div class="card center">
+      <div class="success-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h2 data-i18n="success_title"></h2>
+      <p class="muted" data-i18n="success_msg"></p>
+      <p class="small muted" data-i18n="order_id"></p>
+      <div class="order-code" id="done-code"></div>
+      <div style="margin:10px 0 18px"><button class="btn sm ghost" id="copy-code" data-i18n="copy"></button></div>
+      <button class="btn primary block" id="restart" data-i18n="new_order"></button>
+    </div>
+  </section>
+
+  <!-- Track -->
+  <div class="card" style="margin-top:24px">
+    <h3 data-i18n="track_order"></h3>
+    <form id="track-form" class="row" style="align-items:flex-start">
+      <input id="track-id" class="input ltr" placeholder="JXXXXXXX" autocomplete="off" style="flex:2;text-transform:uppercase">
+      <button class="btn primary" data-i18n="track"></button>
+    </form>
+    <div id="track-result" style="margin-top:12px"></div>
+  </div>
+
+  <footer class="footer">© <span id="yr"></span> <span data-i18n="app_name"></span> · <a href="/admin" data-i18n="admin"></a></footer>
+</div>
+
+<script src="/static/common.js"></script>
+<script>
+const { t, api, fmt, esc, copy, normDigits } = Jisr;
+const $ = id => document.getElementById(id);
+const state = { countries: [], country: null, amount: 0, number: "", file: null };
+const sections = ["s-country", "s-amount", "s-pay", "s-done"];
+
+function show(idx) {
+  sections.forEach((s, i) => $(s).classList.toggle("hidden", i !== idx));
+  document.querySelectorAll("#steps span").forEach((el, i) => el.classList.toggle("on", i <= idx));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function loadCountries() {
+  const list = $("country-list");
+  try {
+    state.countries = await api("/api/countries");
+  } catch (e) {
+    list.innerHTML = `<div class="alert error">${esc(e.message)}</div>`;
+    return;
+  }
+  if (!state.countries.length) {
+    list.innerHTML = `<p class="muted">${esc(t("no_countries"))}</p>`;
+    return;
+  }
+  list.innerHTML = state.countries.map(c => `
+    <button class="country" data-id="${c.id}">
+      <span class="flag">${esc(c.flag)}</span>
+      <span class="info">
+        <span class="name">${esc(c.name)}</span>
+        <span class="meta" style="display:block">${esc(c.payout_method)}</span>
+      </span>
+      <span class="rate">${fmt(c.rate_per_100, 4)} ${esc(c.currency_code)}<small>${esc(t("rate_format", { rate: "", currency: "" }).replace(/^\s+/, ""))}</small></span>
+    </button>`).join("");
+  list.querySelectorAll(".country").forEach(b => b.addEventListener("click", () => pickCountry(+b.dataset.id)));
+  // keep a selected country in sync after language change
+  if (state.country) state.country = state.countries.find(c => c.id === state.country.id) || null;
+}
+
+function pickCountry(id) {
+  state.country = state.countries.find(c => c.id === id);
+  if (!state.country) return;
+  renderCountryHeader();
+  show(1);
+  setTimeout(() => $("amount").focus(), 250);
+}
+
+function renderCountryHeader() {
+  const c = state.country;
+  if (!c) return;
+  $("sel-flag").textContent = c.flag;
+  $("sel-name").textContent = c.name;
+  $("sel-rate").textContent = t("rate_format", { rate: fmt(c.rate_per_100, 4), currency: c.currency_code });
+  $("number-label").textContent = t("mobile_number", { method: c.payout_method });
+  $("receive-cur").textContent = c.currency_code;
+  updateReceive();
+}
+
+function parseAmount() {
+  const v = parseFloat(normDigits($("amount").value).replace(/,/g, ""));
+  return isFinite(v) ? v : 0;
+}
+function updateReceive() {
+  const a = parseAmount();
+  $("receive").textContent = state.country ? fmt(a * state.country.rate_per_100 / 100) : "0";
+}
+$("amount").addEventListener("input", () => { $("amount-err").textContent = ""; $("amount").classList.remove("invalid"); updateReceive(); });
+$("number").addEventListener("input", () => { $("number-err").textContent = ""; $("number").classList.remove("invalid"); });
+
+$("amount-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const amount = parseAmount();
+  const number = normDigits($("number").value).replace(/[\s\-()]/g, "");
+  let ok = true;
+  if (!(amount > 0)) { $("amount-err").textContent = t("error_amount"); $("amount").classList.add("invalid"); ok = false; }
+  if (!/^\+?\d{7,15}$/.test(number)) {
+    $("number-err").textContent = number ? t("error_number") : t("error_required");
+    $("number").classList.add("invalid"); ok = false;
+  }
+  if (!ok) return;
+  state.amount = amount; state.number = number;
+  renderSummary();
+  loadAccounts();
+  show(2);
+});
+
+function renderSummary() {
+  const c = state.country;
+  $("sum-pay").textContent = `${fmt(state.amount)} MRU`;
+  $("sum-receive").textContent = `${fmt(state.amount * c.rate_per_100 / 100)} ${c.currency_code}`;
+  $("sum-number").textContent = state.number;
+}
+
+async function loadAccounts() {
+  const box = $("accounts");
+  box.innerHTML = `<p class="muted">${esc(t("loading"))}</p>`;
+  try {
+    const accs = await api("/api/accounts");
+    box.innerHTML = accs.map(a => `
+      <div class="account">
+        <span class="name">${esc(a.name)}</span>
+        <span class="num">${esc(a.number)}</span>
+        <button class="btn sm ghost" data-copy="${esc(a.number)}">${esc(t("copy"))}</button>
+      </div>`).join("") || `<p class="muted">${esc(t("empty_state"))}</p>`;
+    box.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => copy(b.dataset.copy)));
+  } catch (e) {
+    box.innerHTML = `<div class="alert error">${esc(e.message)}</div>`;
+  }
+}
+
+$("receipt").addEventListener("change", () => {
+  const f = $("receipt").files[0];
+  $("receipt-err").textContent = "";
+  if (!f) return;
+  if (!f.type.startsWith("image/")) { $("receipt-err").textContent = t("invalid_file"); $("receipt").value = ""; return; }
+  if (f.size > 5 * 1024 * 1024) { $("receipt-err").textContent = t("file_too_large"); $("receipt").value = ""; return; }
+  state.file = f;
+  const img = $("preview");
+  img.src = URL.createObjectURL(f);
+  img.classList.remove("hidden");
+});
+
+$("submit").addEventListener("click", async () => {
+  $("pay-err").classList.add("hidden");
+  if (!state.file) { $("receipt-err").textContent = t("error_receipt"); return; }
+  const fd = new FormData();
+  fd.append("country_id", state.country.id);
+  fd.append("amount_mru", state.amount);
+  fd.append("mobile_number", state.number);
+  fd.append("receipt", state.file);
+  const btn = $("submit");
+  btn.disabled = true; btn.textContent = t("loading");
+  try {
+    const res = await api("/api/orders", { method: "POST", body: fd });
+    $("done-code").textContent = res.order.public_id;
+    $("track-id").value = res.order.public_id;
+    try { localStorage.setItem("jisr_last_order", res.order.public_id); } catch (_) {}
+    show(3);
+  } catch (e) {
+    $("pay-err").textContent = e.message;
+    $("pay-err").classList.remove("hidden");
+  } finally {
+    btn.disabled = false; btn.textContent = t("confirm_order");
+  }
+});
+
+$("back-1").addEventListener("click", () => show(0));
+$("back-2").addEventListener("click", () => show(1));
+$("copy-code").addEventListener("click", () => copy($("done-code").textContent));
+$("restart").addEventListener("click", () => {
+  Object.assign(state, { country: null, amount: 0, number: "", file: null });
+  $("amount").value = ""; $("number").value = ""; $("receipt").value = "";
+  $("preview").classList.add("hidden");
+  show(0);
+});
+
+$("track-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = $("track-id").value.trim().toUpperCase();
+  const out = $("track-result");
+  if (!id) { out.innerHTML = `<div class="field-error">${esc(t("error_required"))}</div>`; return; }
+  out.innerHTML = `<p class="muted">${esc(t("loading"))}</p>`;
+  try {
+    const { order: o } = await api(`/api/orders/${encodeURIComponent(id)}`);
+    out.innerHTML = `
+      <dl class="kv">
+        <div><dt>${esc(t("status"))}</dt><dd><span class="badge ${esc(o.status)}">${esc(o.status_label)}</span></dd></div>
+        <div><dt>${esc(t("pay_amount"))}</dt><dd>${fmt(o.amount_mru)} MRU</dd></div>
+        <div><dt>${esc(t("receive_amount"))}</dt><dd>${fmt(o.amount_receive)} ${esc(o.currency_code)}</dd></div>
+        <div><dt>${esc(t("date"))}</dt><dd>${esc(new Date(o.created_at).toLocaleString())}</dd></div>
+      </dl>`;
+  } catch (err) {
+    out.innerHTML = `<div class="alert error">${esc(err.message)}</div>`;
+  }
+});
+
+async function refreshLang() {
+  await loadCountries();
+  renderCountryHeader();
+  if (!$("s-pay").classList.contains("hidden")) { renderSummary(); loadAccounts(); }
+  $("submit").textContent = t("confirm_order");
+}
+
+(async () => {
+  $("yr").textContent = new Date().getFullYear();
+  try { const last = localStorage.getItem("jisr_last_order"); if (last) $("track-id").value = last; } catch (_) {}
+  Jisr.bindLangSwitch(refreshLang);
+  await Jisr.loadLang();
+  show(0);
+  await loadCountries();
+})();
+</script>
+</body>
+</html>

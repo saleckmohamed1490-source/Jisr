@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#00704a">
+<title>جسر · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap wide">
+  <header class="topbar">
+    <a class="brand" href="/admin">
+      <div class="brand-mark">ج</div>
+      <div>
+        <div class="brand-name" data-i18n="app_name">جسر</div>
+        <div class="brand-tag" data-i18n="dashboard"></div>
+      </div>
+    </a>
+    <div class="top-actions">
+      <div class="lang-switch">
+        <button data-lang="ar">ع</button><button data-lang="fr">FR</button><button data-lang="en">EN</button>
+      </div>
+      <a class="btn sm ghost" href="/" data-i18n="view_site"></a>
+      <button class="btn sm ghost hidden" id="logout" data-i18n="logout"></button>
+    </div>
+  </header>
+
+  <!-- Auth -->
+  <section id="auth" class="hidden" style="max-width:420px;margin:24px auto">
+    <div class="card">
+      <h2 id="auth-title"></h2>
+      <p class="muted small hidden" id="setup-hint" data-i18n="setup_hint"></p>
+      <form id="auth-form" novalidate>
+        <div class="field"><label data-i18n="username"></label><input class="input" id="a-user" autocomplete="username"></div>
+        <div class="field"><label data-i18n="password"></label><input class="input" id="a-pass" type="password" autocomplete="current-password"></div>
+        <div class="field hidden" id="confirm-field"><label data-i18n="confirm_password"></label><input class="input" id="a-pass2" type="password" autocomplete="new-password"></div>
+        <div class="alert error hidden" id="auth-err"></div>
+        <button class="btn primary block" id="auth-btn"></button>
+      </form>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="app" class="hidden">
+    <nav class="tabs">
+      <button data-tab="orders" class="on" data-i18n="orders"></button>
+      <button data-tab="countries" data-i18n="countries"></button>
+      <button data-tab="accounts" data-i18n="payment_accounts_nav"></button>
+    </nav>
+
+    <!-- Orders -->
+    <div id="tab-orders">
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <div class="chips" id="status-chips">
+          <button data-status="" class="on" data-i18n="filter_all"></button>
+          <button data-status="new" data-i18n="filter_new"></button>
+          <button data-status="done" data-i18n="filter_done"></button>
+          <button data-status="rejected" data-i18n="filter_rejected"></button>
+        </div>
+        <select class="input" id="country-filter" style="flex:0 1 180px"></select>
+        <input class="input ltr" id="search" placeholder="J… / +232…">
+        <a class="btn sm ghost" id="csv" data-i18n="export_csv"></a>
+      </div>
+      <div class="list" id="orders"></div>
+    </div>
+
+    <!-- Countries -->
+    <div id="tab-countries" class="hidden">
+      <div class="toolbar"><button class="btn primary sm" id="add-country" data-i18n="add_country"></button></div>
+      <div class="card hidden" id="country-form-card" style="margin-bottom:12px">
+        <form id="country-form" novalidate>
+          <div class="grid-form">
+            <div class="field"><label data-i18n="name_ar"></label><input class="input" name="name_ar" required></div>
+            <div class="field"><label data-i18n="name_fr"></label><input class="input" name="name_fr"></div>
+            <div class="field"><label data-i18n="name_en"></label><input class="input" name="name_en"></div>
+            <div class="field"><label data-i18n="flag"></label><input class="input" name="flag" placeholder="🇸🇳"></div>
+            <div class="field"><label data-i18n="currency"></label><input class="input ltr" name="currency_code" required placeholder="XOF" style="text-transform:uppercase"></div>
+            <div class="field"><label data-i18n="rate_per_100"></label><input class="input ltr" name="rate_per_100" inputmode="decimal" required></div>
+            <div class="field"><label data-i18n="payout_method_ar"></label><input class="input" name="payout_method_ar" required></div>
+            <div class="field"><label data-i18n="payout_method_fr"></label><input class="input" name="payout_method_fr"></div>
+            <div class="field"><label data-i18n="payout_method_en"></label><input class="input" name="payout_method_en"></div>
+            <div class="field"><label data-i18n="sort_order"></label><input class="input ltr" name="sort_order" inputmode="numeric" value="0"></div>
+            <div class="field" style="align-self:end"><label class="check"><input type="checkbox" name="is_active" checked> <span data-i18n="active"></span></label></div>
+          </div>
+          <div class="alert error hidden" id="country-err"></div>
+          <div class="row" style="max-width:320px">
+            <button type="button" class="btn ghost" id="country-cancel" data-i18n="cancel"></button>
+            <button class="btn primary" data-i18n="save"></button>
+          </div>
+        </form>
+      </div>
+      <div class="list" id="countries"></div>
+    </div>
+
+    <!-- Accounts -->
+    <div id="tab-accounts" class="hidden">
+      <div class="toolbar"><button class="btn primary sm" id="add-account" data-i18n="add_account"></button></div>
+      <div class="card hidden" id="account-form-card" style="margin-bottom:12px">
+        <form id="account-form" novalidate>
+          <div class="grid-form">
+            <div class="field"><label data-i18n="account_name_ar"></label><input class="input" name="name_ar" required></div>
+            <div class="field"><label data-i18n="account_name_fr"></label><input class="input" name="name_fr"></div>
+            <div class="field"><label data-i18n="account_name_en"></label><input class="input" name="name_en"></div>
+            <div class="field"><label data-i18n="account_number"></label><input class="input ltr" name="number" required></div>
+            <div class="field"><label data-i18n="sort_order"></label><input class="input ltr" name="sort_order" inputmode="numeric" value="0"></div>
+            <div class="field" style="align-self:end"><label class="check"><input type="checkbox" name="is_active" checked> <span data-i18n="active"></span></label></div>
+          </div>
+          <div class="alert error hidden" id="account-err"></div>
+          <div class="row" style="max-width:320px">
+            <button type="button" class="btn ghost" id="account-cancel" data-i18n="cancel"></button>
+            <button class="btn primary" data-i18n="save"></button>
+          </div>
+        </form>
+      </div>
+      <div class="list" id="accounts"></div>
+    </div>
+  </section>
+</div>
+
+<div class="modal-bg hidden" id="modal"><img id="modal-img" alt=""></div>
+
+<script src="/static/common.js"></script>
+<script>
+const { t, api, fmt, esc, toast } = Jisr;
+const $ = id => document.getElementById(id);
+let authMode = "login";
+let tab = "orders";
+const filters = { status: "", country_id: "", q: "" };
+let countriesCache = [], accountsCache = [];
+
+// ---------- auth ----------
+async function boot() {
+  const s = await api("/api/admin/state");
+  if (s.logged_in) return enterApp();
+  authMode = s.setup_needed ? "setup" : "login";
+  renderAuth();
+  $("auth").classList.remove("hidden");
+  $("app").classList.add("hidden");
+  $("logout").classList.add("hidden");
+}
+function renderAuth() {
+  const setup = authMode === "setup";
+  $("auth-title").textContent = t(setup ? "setup_title" : "login");
+  $("auth-btn").textContent = t(setup ? "save" : "login");
+  $("setup-hint").classList.toggle("hidden", !setup);
+  $("confirm-field").classList.toggle("hidden", !setup);
+  $("a-pass").autocomplete = setup ? "new-password" : "current-password";
+}
+$("auth-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = $("auth-err");
+  err.classList.add("hidden");
+  const body = { username: $("a-user").value.trim(), password: $("a-pass").value, confirm_password: $("a-pass2").value };
+  try {
+    await api(authMode === "setup" ? "/api/admin/setup" : "/api/admin/login", { method: "POST", body });
+    $("a-pass").value = $("a-pass2").value = "";
+    enterApp();
+  } catch (ex) {
+    err.textContent = ex.message; err.classList.remove("hidden");
+  }
+});
+$("logout").addEventListener("click", async () => { await api("/api/admin/logout", { method: "POST" }); boot(); });
+
+function enterApp() {
+  $("auth").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("logout").classList.remove("hidden");
+  switchTab(tab);
+}
+function handleAuthError(e) {
+  if (e.status === 401) { boot(); return true; }
+  toast(e.message); return false;
+}
+
+// ---------- tabs ----------
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+function switchTab(name) {
+  tab = name;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  ["orders", "countries", "accounts"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  if (name === "orders") { loadCountries(true); loadOrders(); }
+  if (name === "countries") loadCountries();
+  if (name === "accounts") loadAccounts();
+}
+
+// Two-tap delete confirmation
+function confirmTap(btn, fn) {
+  if (btn.dataset.armed) { fn(); return; }
+  btn.dataset.armed = "1";
+  const old = btn.textContent;
+  btn.textContent = t("confirm_delete");
+  setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; }, 3000);
+}
+
+// ---------- orders ----------
+const qs = () => new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+
+async function loadStats() {
+  try {
+    const s = await api("/api/admin/stats");
+    const transferred = s.transferred.length
+      ? s.transferred.map(r => `${fmt(r.total)} ${esc(r.currency_code)}`).join("<br>")
+      : "0";
+    $("stats").innerHTML = `
+      <div class="stat"><div class="label">${esc(t("stats_new"))}</div><div class="value" style="color:var(--warn)">${s.new}</div></div>
+      <div class="stat"><div class="label">${esc(t("stats_all"))}</div><div class="value">${s.all}</div></div>
+      <div class="stat"><div class="label">${esc(t("stats_mru"))}</div><div class="value">${fmt(s.mru_done)} MRU</div></div>
+      <div class="stat"><div class="label">${esc(t("stats_transferred"))}</div><div class="value" style="font-size:18px">${transferred}</div></div>`;
+  } catch (e) { handleAuthError(e); }
+}
+
+async function loadOrders() {
+  loadStats();
+  $("csv").href = "/api/admin/orders.csv?" + qs();
+  const box = $("orders");
+  box.innerHTML = `<p class="muted">${esc(t("loading"))}</p>`;
+  let rows;
+  try { rows = await api("/api/admin/orders?" + qs()); }
+  catch (e) { handleAuthError(e); return; }
+  if (!rows.length) { box.innerHTML = `<div class="card center muted">${esc(t("no_orders"))}</div>`; return; }
+  box.innerHTML = rows.map(o => `
+    <div class="item" data-id="${o.id}">
+      <div class="item-head">
+        <span class="code">${esc(o.public_id)}</span>
+        <span class="badge ${esc(o.status)}">${esc(t("status_" + o.status))}</span>
+        <span>${esc(o.country_name)}</span>
+        <span class="date">${esc(new Date(o.created_at).toLocaleString())}</span>
+      </div>
+      <div class="item-body">
+        <div><div class="k">${esc(t("pay_amount"))}</div><div class="v">${fmt(o.amount_mru)} MRU</div></div>
+        <div><div class="k">${esc(t("receive_amount"))}</div><div class="v" style="color:var(--primary)">${fmt(o.amount_receive)} ${esc(o.currency_code)}</div></div>
+        <div><div class="k">${esc(t("receiving_number"))}</div><div class="v">${esc(o.mobile_number)} <button class="btn sm ghost" data-copy="${esc(o.mobile_number)}" style="padding:2px 8px">${esc(t("copy"))}</button></div></div>
+        <div><div class="k">${esc(t("rate_used"))}</div><div class="v">${fmt(o.rate_used, 4)}</div></div>
+      </div>
+      <div class="item-actions">
+        ${o.receipt_path ? `<button class="btn sm ghost" data-act="receipt">${esc(t("receipt"))}</button>` : ""}
+        ${o.status !== "done" ? `<button class="btn sm ok" data-act="done">${esc(t("mark_transferred"))}</button>` : ""}
+        ${o.status === "new" ? `<button class="btn sm danger" data-act="rejected">${esc(t("reject"))}</button>` : ""}
+        ${o.status !== "new" ? `<button class="btn sm ghost" data-act="new">${esc(t("back_to_new"))}</button>` : ""}
+        <button class="btn sm danger" data-act="delete" style="margin-inline-start:auto">${esc(t("delete"))}</button>
+      </div>
+    </div>`).join("");
+}
+
+$("orders").addEventListener("click", async e => {
+  const cp = e.target.closest("[data-copy]");
+  if (cp) { Jisr.copy(cp.dataset.copy); return; }
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  const id = btn.closest(".item").dataset.id;
+  const act = btn.dataset.act;
+  try {
+    if (act === "receipt") return openReceipt(id);
+    if (act === "delete") return confirmTap(btn, async () => {
+      try { await api(`/api/admin/orders/${id}`, { method: "DELETE" }); loadOrders(); } catch (ex) { handleAuthError(ex); }
+    });
+    btn.disabled = true;
+    await api(`/api/admin/orders/${id}`, { method: "PATCH", body: { status: act } });
+    loadOrders();
+  } catch (ex) { handleAuthError(ex); btn.disabled = false; }
+});
+
+let lastBlobUrl;
+async function openReceipt(id) {
+  const res = await fetch(`/api/admin/receipts/${id}`, { credentials: "same-origin" });
+  if (!res.ok) { toast(t("not_found")); return; }
+  if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+  lastBlobUrl = URL.createObjectURL(await res.blob());
+  $("modal-img").src = lastBlobUrl;
+  $("modal").classList.remove("hidden");
+}
+$("modal").addEventListener("click", () => $("modal").classList.add("hidden"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("modal").classList.add("hidden"); });
+
+$("status-chips").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filters.status = b.dataset.status;
+  document.querySelectorAll("#status-chips button").forEach(x => x.classList.toggle("on", x === b));
+  loadOrders();
+});
+$("country-filter").addEventListener("change", e => { filters.country_id = e.target.value; loadOrders(); });
+let searchTimer;
+$("search").addEventListener("input", e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { filters.q = Jisr.normDigits(e.target.value.trim()); loadOrders(); }, 300);
+});
+
+// ---------- generic CRUD (countries & accounts) ----------
+function formToObj(form) {
+  const o = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    o[el.name] = el.type === "checkbox" ? el.checked : Jisr.normDigits(el.value).trim();
+  }
+  return o;
+}
+function fillForm(form, data) {
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") el.checked = data ? !!data[el.name] : true;
+    else el.value = data ? (data[el.name] ?? "") : (el.name === "sort_order" ? "0" : "");
+  }
+}
+function makeCrud({ kind, endpoint, listEl, formCard, form, errEl, addBtn, cancelBtn, render, after }) {
+  let editing = null;
+  const open = row => {
+    editing = row ? row.id : null;
+    fillForm(form, row);
+    errEl.classList.add("hidden");
+    formCard.classList.remove("hidden");
+    form.querySelector("input").focus();
+    formCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  const close = () => { formCard.classList.add("hidden"); editing = null; };
+  addBtn.addEventListener("click", () => open(null));
+  cancelBtn.addEventListener("click", close);
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    try {
+      await api(editing ? `${endpoint}/${editing}` : endpoint, { method: editing ? "PUT" : "POST", body: formToObj(form) });
+      toast(t("saved")); close(); after();
+    } catch (ex) {
+      if (ex.status === 401) return boot();
+      errEl.textContent = ex.message; errEl.classList.remove("hidden");
+    }
+  });
+  listEl.addEventListener("click", async e => {
+    const btn = e.target.closest("[data-act]"); if (!btn) return;
+    const id = +btn.closest(".item").dataset.id;
+    const cache = kind === "country" ? countriesCache : accountsCache;
+    const row = cache.find(r => r.id === id);
+    if (btn.dataset.act === "edit") return open(row);
+    if (btn.dataset.act === "toggle") {
+      try { await api(`${endpoint}/${id}`, { method: "PUT", body: { ...row, is_active: !row.is_active } }); after(); }
+      catch (ex) { handleAuthError(ex); }
+    }
+    if (btn.dataset.act === "delete") confirmTap(btn, async () => {
+      try { await api(`${endpoint}/${id}`, { method: "DELETE" }); after(); } catch (ex) { handleAuthError(ex); }
+    });
+  });
+}
+const rowActions = active => `
+  <div class="item-actions">
+    <button class="btn sm ghost" data-act="edit">${esc(t("edit"))}</button>
+    <button class="btn sm ghost" data-act="toggle">${esc(t(active ? "inactive" : "active"))}</button>
+    <button class="btn sm danger" data-act="delete" style="margin-inline-start:auto">${esc(t("delete"))}</button>
+  </div>`;
+const nameFor = (r, f) => r[`${f}_${Jisr.lang}`] || r[`${f}_ar`];
+
+async function loadCountries(filterOnly) {
+  try { countriesCache = await api("/api/admin/countries"); } catch (e) { handleAuthError(e); return; }
+  const sel = $("country-filter");
+  sel.innerHTML = `<option value="">${esc(t("filter_country"))}</option>` +
+    countriesCache.map(c => `<option value="${c.id}">${esc(c.flag)} ${esc(nameFor(c, "name"))}</option>`).join("");
+  sel.value = filters.country_id;
+  if (filterOnly) return;
+  $("countries").innerHTML = countriesCache.map(c => `
+    <div class="item" data-id="${c.id}">
+      <div class="item-head">
+        <span style="font-size:26px">${esc(c.flag)}</span>
+        <b>${esc(nameFor(c, "name"))}</b>
+        <span class="badge ${c.is_active ? "done" : "off"}">${esc(t(c.is_active ? "active" : "inactive"))}</span>
+      </div>
+      <div class="item-body">
+        <div><div class="k">${esc(t("rate_per_100"))}</div><div class="v" style="color:var(--primary)">${fmt(c.rate_per_100, 4)} ${esc(c.currency_code)}</div></div>
+        <div><div class="k">${esc(t("payout_method_ar").replace(/\s*\(.*\)/, ""))}</div><div class="v">${esc(nameFor(c, "payout_method"))}</div></div>
+      </div>
+      ${rowActions(c.is_active)}
+    </div>`).join("") || `<div class="card center muted">${esc(t("empty_state"))}</div>`;
+}
+
+async function loadAccounts() {
+  try { accountsCache = await api("/api/admin/accounts"); } catch (e) { handleAuthError(e); return; }
+  $("accounts").innerHTML = accountsCache.map(a => `
+    <div class="item" data-id="${a.id}">
+      <div class="item-head">
+        <b>${esc(nameFor(a, "name"))}</b>
+        <span class="code">${esc(a.number)}</span>
+        <span class="badge ${a.is_active ? "done" : "off"}">${esc(t(a.is_active ? "active" : "inactive"))}</span>
+      </div>
+      ${rowActions(a.is_active)}
+    </div>`).join("") || `<div class="card center muted">${esc(t("empty_state"))}</div>`;
+}
+
+makeCrud({ kind: "country", endpoint: "/api/admin/countries", listEl: $("countries"), formCard: $("country-form-card"),
+  form: $("country-form"), errEl: $("country-err"), addBtn: $("add-country"), cancelBtn: $("country-cancel"), after: () => loadCountries() });
+makeCrud({ kind: "account", endpoint: "/api/admin/accounts", listEl: $("accounts"), formCard: $("account-form-card"),
+  form: $("account-form"), errEl: $("account-err"), addBtn: $("add-account"), cancelBtn: $("account-cancel"), after: loadAccounts });
+
+Jisr.bindLangSwitch(() => { if ($("app").classList.contains("hidden")) renderAuth(); else switchTab(tab); });
+Jisr.loadLang().then(boot);
+</script>
+</body>
+</html>
