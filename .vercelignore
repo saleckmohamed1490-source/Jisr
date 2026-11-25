@@ -1,0 +1,6 @@
+data/
+*.log
+.git/
+__pycache__/
+Procfile
+runtime.txt

@@ -21,21 +21,33 @@ from functools import wraps
 from pathlib import Path
 
 import bcrypt
-from flask import Flask, Response, abort, g, jsonify, request, send_file, send_from_directory, session
+from flask import Flask, Response, abort, g, jsonify, request, send_from_directory, session
 from PIL import Image, UnidentifiedImageError
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+
+# Storage: Postgres when DATABASE_URL is set (e.g. Supabase, required on Vercel
+# where the filesystem is not persistent), otherwise a local SQLite file.
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_PG = bool(DATABASE_URL)
 DATA_DIR = Path(os.environ.get("JISR_DATA_DIR", BASE_DIR / "data"))
-LOGO_DIR = DATA_DIR / "logos"
 DB_PATH = Path(os.environ.get("JISR_DB", DATA_DIR / "jisr.db"))
-LOGO_DIR.mkdir(parents=True, exist_ok=True)
+if USE_PG:
+    import psycopg
+    from psycopg.rows import dict_row
+    IntegrityErrors = (psycopg.IntegrityError, sqlite3.IntegrityError)
+else:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    IntegrityErrors = (sqlite3.IntegrityError,)
 
 
 def _load_secret():
     env = os.environ.get("JISR_SECRET")
     if env:
         return env
+    if USE_PG:
+        raise RuntimeError("Set JISR_SECRET when running with DATABASE_URL")
     key_file = DATA_DIR / ".secret_key"
     if key_file.exists():
         return key_file.read_text().strip()
@@ -85,10 +97,30 @@ def now_local():
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
+class PgDB:
+    """Minimal sqlite3-like wrapper so the queries below work on both engines."""
+
+    def __init__(self):
+        self.conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, prepare_threshold=None,
+                                    connect_timeout=10)
+
+    def execute(self, sql, params=()):
+        return self.conn.execute(sql.replace("?", "%s"), params)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(str(DB_PATH))
-        g.db.row_factory = sqlite3.Row
+        if USE_PG:
+            g.db = PgDB()
+        else:
+            g.db = sqlite3.connect(str(DB_PATH))
+            g.db.row_factory = sqlite3.Row
     return g.db
 
 
@@ -100,11 +132,18 @@ def close_db(exc):
 
 
 def init_db():
+    """SQLite only; the Postgres schema lives in schema.sql."""
+    if USE_PG:
+        return
     db = sqlite3.connect(str(DB_PATH))
     # An earlier version of the app used a different transactions layout; keep it aside.
     cols = [r[1] for r in db.execute("PRAGMA table_info(transactions)")]
     if cols and "usd_rate" not in cols:
         db.execute("ALTER TABLE transactions RENAME TO transactions_old")
+    pm_cols = [r[1] for r in db.execute("PRAGMA table_info(payment_methods)")]
+    if pm_cols and "logo_version" not in pm_cols:
+        db.execute("ALTER TABLE payment_methods ADD COLUMN logo_version TEXT")
+        db.execute("UPDATE payment_methods SET logo = NULL")
     db.executescript("""
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS admin (
@@ -121,7 +160,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         color TEXT NOT NULL DEFAULT '#00704a',
-        logo TEXT,
+        logo BLOB,
+        logo_version TEXT,
         sort_order INTEGER NOT NULL DEFAULT 0,
         is_active INTEGER NOT NULL DEFAULT 1
     );
@@ -222,7 +262,7 @@ def api_setup():
         db.execute("INSERT INTO admin (id, username, password_hash, created_at) VALUES (1, ?, ?, ?)",
                    (user, bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode(), now_local()))
         db.commit()
-    except sqlite3.IntegrityError:
+    except IntegrityErrors:
         return err("already_setup", 409)
     start_session(user)
     return jsonify({"ok": True})
@@ -253,16 +293,19 @@ def api_logout():
 # ---------------------------------------------------------------------------
 # Payment methods (Bankily, Sedad, Masrivi, ...) with logos
 # ---------------------------------------------------------------------------
+METHOD_COLS = "id, name, color, logo_version, sort_order, is_active"
+
+
 def method_json(r):
     d = dict(r)
-    d["logo_url"] = f"/logos/{r['logo']}" if r["logo"] else None
+    d["logo_url"] = f"/logos/{r['id']}?v={r['logo_version']}" if r["logo_version"] else None
     return d
 
 
 @app.get("/api/methods")
 @login_required
 def api_methods():
-    rows = get_db().execute("SELECT * FROM payment_methods ORDER BY sort_order, id").fetchall()
+    rows = get_db().execute(f"SELECT {METHOD_COLS} FROM payment_methods ORDER BY sort_order, id").fetchall()
     return jsonify([method_json(r) for r in rows])
 
 
@@ -288,10 +331,10 @@ def api_method_create():
     if not p:
         return err("required")
     db = get_db()
-    cur = db.execute(f"INSERT INTO payment_methods ({', '.join(p)}) VALUES ({', '.join('?' * len(p))})",
-                     list(p.values()))
+    new_id = db.execute(f"INSERT INTO payment_methods ({', '.join(p)}) VALUES ({', '.join('?' * len(p))}) "
+                        f"RETURNING id", list(p.values())).fetchone()["id"]
     db.commit()
-    return jsonify({"ok": True, "id": cur.lastrowid}), 201
+    return jsonify({"ok": True, "id": new_id}), 201
 
 
 @app.put("/api/methods/<int:mid>")
@@ -312,11 +355,8 @@ def api_method_update(mid):
 @login_required
 def api_method_delete(mid):
     db = get_db()
-    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
     db.execute("DELETE FROM payment_methods WHERE id = ?", (mid,))
     db.commit()
-    if row and row["logo"]:
-        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
     return jsonify({"ok": True})
 
 
@@ -324,8 +364,7 @@ def api_method_delete(mid):
 @login_required
 def api_method_logo(mid):
     db = get_db()
-    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
-    if not row:
+    if not db.execute("SELECT 1 FROM payment_methods WHERE id = ?", (mid,)).fetchone():
         return err("not_found", 404)
     f = request.files.get("logo")
     if not f:
@@ -337,34 +376,31 @@ def api_method_logo(mid):
         return err("bad_image")
     img = img.convert("RGBA")
     img.thumbnail((256, 256))
-    name = f"{uuid.uuid4().hex}.png"
-    img.save(LOGO_DIR / name, "PNG")
-    db.execute("UPDATE payment_methods SET logo = ? WHERE id = ?", (name, mid))
+    buf = io.BytesIO()
+    img.save(buf, "PNG", optimize=True)
+    version = uuid.uuid4().hex[:12]
+    db.execute("UPDATE payment_methods SET logo = ?, logo_version = ? WHERE id = ?",
+               (buf.getvalue(), version, mid))
     db.commit()
-    if row["logo"]:
-        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
-    return jsonify({"ok": True, "logo_url": f"/logos/{name}"})
+    return jsonify({"ok": True, "logo_url": f"/logos/{mid}?v={version}"})
 
 
 @app.delete("/api/methods/<int:mid>/logo")
 @login_required
 def api_method_logo_delete(mid):
     db = get_db()
-    row = db.execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
-    if row and row["logo"]:
-        db.execute("UPDATE payment_methods SET logo = NULL WHERE id = ?", (mid,))
-        db.commit()
-        (LOGO_DIR / row["logo"]).unlink(missing_ok=True)
+    db.execute("UPDATE payment_methods SET logo = NULL, logo_version = NULL WHERE id = ?", (mid,))
+    db.commit()
     return jsonify({"ok": True})
 
 
-@app.get("/logos/<name>")
-def logo_file(name):
-    path = LOGO_DIR / Path(name).name
-    if not path.exists():
+@app.get("/logos/<int:mid>")
+def logo_file(mid):
+    row = get_db().execute("SELECT logo FROM payment_methods WHERE id = ?", (mid,)).fetchone()
+    if not row or not row["logo"]:
         abort(404)
-    resp = send_file(path, mimetype="image/png")
-    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    resp = Response(bytes(row["logo"]), mimetype="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # URL carries ?v=
     return resp
 
 
@@ -420,12 +456,12 @@ def api_tx_create():
         return err(e)
     row["created_at"] = row["updated_at"] = now_local()
     db = get_db()
-    cur = db.execute(f"INSERT INTO transactions ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})",
-                     list(row.values()))
+    new_id = db.execute(f"INSERT INTO transactions ({', '.join(row)}) VALUES ({', '.join('?' * len(row))}) "
+                        f"RETURNING id", list(row.values())).fetchone()["id"]
     set_setting(db, "last_usd_rate", row["usd_rate"])
     set_setting(db, "last_method_id", row["method_id"])
     db.commit()
-    return jsonify({"ok": True, "id": cur.lastrowid, "profit": row["profit"]}), 201
+    return jsonify({"ok": True, "id": new_id, "profit": row["profit"]}), 201
 
 
 @app.put("/api/transactions/<int:tid>")
@@ -496,7 +532,7 @@ def api_summary():
     where, params = tx_filters()
     by_method = db.execute(
         f"SELECT method_id, method_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(profit) profit "
-        f"FROM transactions{where} GROUP BY method_id ORDER BY mru_paid DESC", params).fetchall()
+        f"FROM transactions{where} GROUP BY method_id, method_name ORDER BY mru_paid DESC", params).fetchall()
 
     start = (datetime.now() - timedelta(days=13)).strftime("%Y-%m-%d")
     per_day = {r["d"]: r["p"] for r in db.execute(
