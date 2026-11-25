@@ -8,6 +8,11 @@ of the payment accounts (Bankily, Sedad, Masrivi, ...).
 
     cost_mru = usd_amount * usd_rate
     profit   = mru_paid - cost_mru
+
+Some currencies are not bought with dollars but have their own buy price
+(cost_type 'direct'); then the cost is the amount the customer received,
+valued at that buy price:
+    cost_mru = to_amount converted to MRU at cur_buy_rate
 """
 import csv
 import io
@@ -80,6 +85,8 @@ MESSAGES = {
     "bad_usd": "أدخل كم كلّف من دولار",
     "bad_mru": "أدخل المبلغ الذي دفعه الزبون",
     "bad_method": "اختر طريقة الدفع",
+    "bad_buy": "أدخل سعر الشراء",
+    "bad_received": "أدخل المبلغ الذي استلمه الزبون",
     "bad_image": "الملف ليس صورة صالحة",
     "too_large": "الصورة كبيرة جداً (الحد ٣ ميغابايت)",
     "not_found": "غير موجود",
@@ -140,9 +147,15 @@ def init_db():
     cols = [r[1] for r in db.execute("PRAGMA table_info(transactions)")]
     if cols and "usd_rate" not in cols:
         db.execute("ALTER TABLE transactions RENAME TO transactions_old")
-    if cols and "usd_rate" in cols and "to_currency" not in cols:
-        db.execute("ALTER TABLE transactions ADD COLUMN to_currency TEXT NOT NULL DEFAULT ''")
-        db.execute("ALTER TABLE transactions ADD COLUMN to_amount REAL")
+    if cols and "usd_rate" in cols:
+        for col, ddl in (("to_currency", "TEXT NOT NULL DEFAULT ''"), ("to_amount", "REAL"),
+                         ("cost_type", "TEXT NOT NULL DEFAULT 'usd'"), ("cur_buy_rate", "REAL"),
+                         ("rate_unit", "TEXT NOT NULL DEFAULT 'per_unit'")):
+            if col not in cols:
+                db.execute(f"ALTER TABLE transactions ADD COLUMN {col} {ddl}")
+    rate_cols = [r[1] for r in db.execute("PRAGMA table_info(rates)")]
+    if rate_cols and "mode" not in rate_cols:
+        db.execute("ALTER TABLE rates ADD COLUMN mode TEXT NOT NULL DEFAULT 'usd'")
     pm_cols = [r[1] for r in db.execute("PRAGMA table_info(payment_methods)")]
     if pm_cols and "logo_version" not in pm_cols:
         db.execute("ALTER TABLE payment_methods ADD COLUMN logo_version TEXT")
@@ -180,6 +193,9 @@ def init_db():
         method_name TEXT NOT NULL DEFAULT '',
         to_currency TEXT NOT NULL DEFAULT '',
         to_amount REAL,
+        cost_type TEXT NOT NULL DEFAULT 'usd',
+        cur_buy_rate REAL,
+        rate_unit TEXT NOT NULL DEFAULT 'per_unit',
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
@@ -192,6 +208,7 @@ def init_db():
         name TEXT NOT NULL,
         flag TEXT NOT NULL DEFAULT '',
         unit TEXT NOT NULL DEFAULT 'per_unit',
+        mode TEXT NOT NULL DEFAULT 'usd',
         buy_rate REAL,
         sell_rate REAL,
         sort_order INTEGER NOT NULL DEFAULT 0,
@@ -433,6 +450,7 @@ def logo_file(mid):
 # The USD row's buy rate is the default dollar price in the transaction form.
 # ---------------------------------------------------------------------------
 RATE_UNITS = ("per_unit", "per100")
+COST_TYPES = ("usd", "direct")  # usd: bought with dollars ; direct: own buy price
 
 
 @app.get("/api/rates")
@@ -448,6 +466,7 @@ def rate_payload(d):
         "name": str(d.get("name") or "").strip()[:40],
         "flag": str(d.get("flag") or "").strip()[:16],
         "unit": d.get("unit") if d.get("unit") in RATE_UNITS else "per_unit",
+        "mode": d.get("mode") if d.get("mode") in COST_TYPES else "usd",
         "sort_order": int(num(d.get("sort_order")) or 0),
     }
     if not p["code"] or not p["name"]:
@@ -496,13 +515,11 @@ def api_rate_delete(rid):
 # ---------------------------------------------------------------------------
 # Transactions
 # ---------------------------------------------------------------------------
+def fx_to_mru(amount, rate, unit):
+    return amount * 100 / rate if unit == "per100" else amount * rate
+
+
 def tx_payload(d):
-    rate = num(d.get("usd_rate"))
-    if not rate or rate <= 0:
-        return None, "bad_rate"
-    usd = num(d.get("usd_amount"))
-    if not usd or usd <= 0:
-        return None, "bad_usd"
     paid = num(d.get("mru_paid"))
     if not paid or paid <= 0 or paid > 1e12:
         return None, "bad_mru"
@@ -510,25 +527,49 @@ def tx_payload(d):
                               (int(num(d.get("method_id")) or 0),)).fetchone()
     if not method:
         return None, "bad_method"
+    to_amount = num(d.get("to_amount"))
+    to_amount = to_amount if to_amount and to_amount > 0 else None
+    to_currency = str(d.get("to_currency") or "").strip().upper()[:6]
+    cost_type = d.get("cost_type") if d.get("cost_type") in COST_TYPES else "usd"
+    unit = d.get("rate_unit") if d.get("rate_unit") in RATE_UNITS else "per_unit"
+
+    rate = usd = buy = None
+    if cost_type == "usd":
+        rate = num(d.get("usd_rate"))
+        if not rate or rate <= 0:
+            return None, "bad_rate"
+        usd = num(d.get("usd_amount"))
+        if not usd or usd <= 0:
+            return None, "bad_usd"
+        cost = usd * rate
+    else:
+        buy = num(d.get("cur_buy_rate"))
+        if not buy or buy <= 0:
+            return None, "bad_buy"
+        if not to_amount or not to_currency:
+            return None, "bad_received"
+        cost = fx_to_mru(to_amount, buy, unit)
+
     tx_date = str(d.get("tx_date") or "").strip()[:16]
     try:
         datetime.strptime(tx_date, "%Y-%m-%dT%H:%M")
     except ValueError:
         tx_date = now_local()
-    cost = round(usd * rate, 2)
-    to_amount = num(d.get("to_amount"))
-    to_amount = to_amount if to_amount and to_amount > 0 else None
+    cost = round(cost, 2)
     return {
         "tx_date": tx_date,
-        "usd_rate": rate,
-        "usd_amount": round(usd, 4),
+        "usd_rate": rate or 0,
+        "usd_amount": round(usd, 4) if usd else 0,
         "cost_mru": cost,
         "mru_paid": round(paid, 2),
         "profit": round(paid - cost, 2),
         "method_id": method["id"],
         "method_name": method["name"],
-        "to_currency": str(d.get("to_currency") or "").strip().upper()[:6] if to_amount else "",
+        "to_currency": to_currency if to_amount else "",
         "to_amount": round(to_amount, 2) if to_amount else None,
+        "cost_type": cost_type,
+        "cur_buy_rate": buy,
+        "rate_unit": unit,
         "customer": str(d.get("customer") or "").strip()[:80],
         "note": str(d.get("note") or "").strip()[:300],
     }, None
@@ -553,7 +594,8 @@ def api_tx_create():
     db = get_db()
     new_id = db.execute(f"INSERT INTO transactions ({', '.join(row)}) VALUES ({', '.join('?' * len(row))}) "
                         f"RETURNING id", list(row.values())).fetchone()["id"]
-    set_setting(db, "last_usd_rate", row["usd_rate"])
+    if row["cost_type"] == "usd":
+        set_setting(db, "last_usd_rate", row["usd_rate"])
     set_setting(db, "last_method_id", row["method_id"])
     db.commit()
     return jsonify({"ok": True, "id": new_id, "profit": row["profit"]}), 201
@@ -653,10 +695,11 @@ def api_tx_csv():
     buf.write("﻿")  # so Excel shows Arabic correctly
     w = csv.writer(buf)
     w.writerow(["التاريخ", "سعر الدولار", "الدولار", "التكلفة بالأوقية", "دفع الزبون", "الربح",
-                "طريقة الدفع", "استلم", "العملة", "الزبون", "ملاحظة"])
+                "طريقة الدفع", "استلم", "العملة", "نوع التكلفة", "سعر الشراء", "الزبون", "ملاحظة"])
     for r in rows:
         w.writerow([r["tx_date"].replace("T", " "), r["usd_rate"], r["usd_amount"], r["cost_mru"],
                     r["mru_paid"], r["profit"], r["method_name"], r["to_amount"] or "", r["to_currency"],
+                    "عبر الدولار" if r["cost_type"] == "usd" else "سعر شراء", r["cur_buy_rate"] or "",
                     r["customer"], r["note"]])
     return Response(buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={
         "Content-Disposition": f"attachment; filename=jisr-{datetime.now():%Y%m%d}.csv"})

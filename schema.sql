@@ -74,3 +74,9 @@ END $$;
 -- v3: what the customer received (from the calculator)
 ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS to_currency TEXT NOT NULL DEFAULT '';
 ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS to_amount DOUBLE PRECISION;
+
+-- v4: currencies bought with dollars vs. with their own buy price
+ALTER TABLE jisr.rates ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'usd';
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS cost_type TEXT NOT NULL DEFAULT 'usd';
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS cur_buy_rate DOUBLE PRECISION;
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS rate_unit TEXT NOT NULL DEFAULT 'per_unit';

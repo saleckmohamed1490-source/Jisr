@@ -53,52 +53,71 @@
       <div class="rate-strip" id="rate-strip"></div>
       <div class="stats" id="stats"></div>
 
+      <!-- Calculator (independent) -->
+      <div class="card" id="calc-card">
+        <h3>حاسبة الصرف</h3>
+        <div class="field"><label for="calc-cur">العملة</label><select class="input" id="calc-cur"></select></div>
+        <div class="two">
+          <div class="field">
+            <label for="c-mru">الزبون يدفع</label>
+            <div class="input-wrap"><input class="input ltr big-num" id="c-mru" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
+          </div>
+          <div class="field">
+            <label for="c-fx">يستلم</label>
+            <div class="input-wrap"><input class="input ltr big-num" id="c-fx" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix" id="c-code"></span></div>
+          </div>
+        </div>
+        <div class="hint" id="calc-hint" style="margin:-6px 0 12px"></div>
+        <button type="button" class="btn ghost block" id="calc-to-tx">تسجيل هذا كمعاملة ↓</button>
+      </div>
+
+      <!-- Save a transaction (independent) -->
       <div class="card" id="tx-card">
         <div class="editing-bar hidden" id="editing-bar">
           <span>تعديل معاملة</span>
           <button class="btn sm ghost" id="cancel-edit">إلغاء</button>
         </div>
-        <h3 id="form-title">حاسبة الصرف</h3>
+        <h3 id="form-title">تسجيل معاملة</h3>
         <form id="tx-form" novalidate>
-          <div class="field"><label for="calc-cur">العملة</label><select class="input" id="calc-cur"></select></div>
+          <div class="field"><label for="tx-cur">العملة</label><select class="input" id="tx-cur"></select></div>
           <div class="two">
             <div class="field">
-              <label for="f-paid">الزبون يدفع</label>
-              <div class="input-wrap">
-                <input class="input ltr big-num" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0">
-                <span class="suffix">أوقية</span>
-              </div>
+              <label for="f-paid">الزبون دفع</label>
+              <div class="input-wrap"><input class="input ltr" id="f-paid" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
             </div>
             <div class="field">
-              <label for="calc-fx">يستلم</label>
-              <div class="input-wrap">
-                <input class="input ltr big-num" id="calc-fx" inputmode="decimal" autocomplete="off" placeholder="0">
-                <span class="suffix" id="calc-code"></span>
-              </div>
+              <label for="f-fx">استلم</label>
+              <div class="input-wrap"><input class="input ltr" id="f-fx" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix" id="f-code"></span></div>
             </div>
           </div>
-          <div class="hint" id="calc-hint" style="margin:-6px 0 14px"></div>
 
-          <div class="section-title">حفظ المعاملة</div>
           <div class="field">
             <label>الزبون دفع على</label>
             <div class="methods" id="method-pick"></div>
           </div>
 
-          <div class="two">
-            <div class="field">
-              <label for="f-rate">سعر الدولار</label>
-              <div class="input-wrap">
-                <input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0">
-                <span class="suffix">أوقية</span>
+          <!-- Cost: currencies bought with dollars -->
+          <div id="cost-usd">
+            <div class="cost-tag">💵 هذه العملة نتعامل بها عبر الدولار</div>
+            <div class="two">
+              <div class="field">
+                <label for="f-rate">سعر الدولار</label>
+                <div class="input-wrap"><input class="input ltr" id="f-rate" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
+              </div>
+              <div class="field">
+                <label for="f-usd">كم كلّف من دولار</label>
+                <div class="input-wrap"><input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">$</span></div>
               </div>
             </div>
+          </div>
+
+          <!-- Cost: currencies with their own buy price -->
+          <div id="cost-direct" class="hidden">
+            <div class="cost-tag">🔁 هذه العملة نشتريها ونبيعها بسعر</div>
             <div class="field">
-              <label for="f-usd">كم كلّف من دولار</label>
-              <div class="input-wrap">
-                <input class="input ltr" id="f-usd" inputmode="decimal" autocomplete="off" placeholder="0">
-                <span class="suffix">$</span>
-              </div>
+              <label for="f-buy">سعر الشراء (اشترينا به)</label>
+              <input class="input ltr" id="f-buy" inputmode="decimal" autocomplete="off" placeholder="0">
+              <div class="hint" id="f-buy-hint"></div>
             </div>
           </div>
 
@@ -200,9 +219,15 @@
               </select>
             </div>
           </div>
+          <div class="field"><label>كيف نتعامل بهذه العملة؟</label>
+            <select class="input" name="mode">
+              <option value="usd">عبر الدولار (نشتري دولار ونصرف به)</option>
+              <option value="direct">نشتريها ونبيعها بسعر</option>
+            </select>
+          </div>
           <div class="two">
-            <div class="field"><label>سعر الشراء</label><input class="input ltr" name="buy_rate" inputmode="decimal"><div class="hint rate-hint"></div></div>
-            <div class="field"><label>سعر البيع</label><input class="input ltr" name="sell_rate" inputmode="decimal"><div class="hint rate-hint"></div></div>
+            <div class="field" id="buy-field"><label>سعر الشراء</label><input class="input ltr" name="buy_rate" inputmode="decimal"><div class="hint rate-hint"></div></div>
+            <div class="field"><label>سعر البيع للزبون</label><input class="input ltr" name="sell_rate" inputmode="decimal"><div class="hint rate-hint"></div></div>
           </div>
           <div class="alert error hidden" id="rate-err"></div>
           <div class="row">
@@ -411,14 +436,26 @@ const unitHint = r => r.unit === "per100" ? `كم ${r.code || "من العملة
 // "1 USD = 40.2 أوقية" or "100 أوقية = 53 SLE"
 const rateText = (r, v) => v ? (r.unit === "per100" ? `${fmt(v, 4)} ${r.code} لكل 100 أوقية` : `${fmt(v, 4)} أوقية لكل 1 ${r.code}`) : "—";
 
+const isUsdRow = r => r && r.code === "USD";
+// How a currency's cost is computed: 'usd' (bought with dollars) or 'direct' (own buy price).
+const costMode = r => (r && r.mode === "direct" && !isUsdRow(r)) ? "direct" : "usd";
+const sellOf = r => r ? (r.sell_rate || (costMode(r) === "direct" || isUsdRow(r) ? r.buy_rate : null)) : null;
+const fxFromMru = (r, v, m) => r.unit === "per100" ? m * v / 100 : m / v;
+const mruFromFx = (r, v, x) => r.unit === "per100" ? x * 100 / v : x * v;
+
+function fillCurSelect(sel, storeKey) {
+  let keep = sel.value;
+  if (!keep) { try { keep = localStorage.getItem(storeKey) || ""; } catch (_) {} }
+  sel.innerHTML = rates.map(r => `<option value="${r.id}">${esc(r.flag)} ${esc(r.name)}</option>`).join("");
+  if (keep && rates.some(r => String(r.id) === keep)) sel.value = keep;
+}
 async function loadRates() {
   rates = await api("/api/rates");
   renderRateStrip();
-  let keep = $("calc-cur").value;
-  if (!keep) { try { keep = localStorage.getItem("jisr_calc_cur") || ""; } catch (_) {} }
-  $("calc-cur").innerHTML = rates.map(r => `<option value="${r.id}">${esc(r.flag)} ${esc(r.name)}</option>`).join("");
-  if (keep && rates.some(r => String(r.id) === keep)) $("calc-cur").value = keep;
+  fillCurSelect($("calc-cur"), "jisr_calc_cur");
+  fillCurSelect($("tx-cur"), "jisr_tx_cur");
   calc("mru");
+  if (!editingTx) onTxCurrency(false);
 }
 
 function renderRateStrip() {
@@ -439,9 +476,12 @@ function renderRates() {
         <div><b>${esc(r.name)}</b> <span class="muted small">${esc(r.code)}</span>
         <div class="hint">آخر تحديث <bdi>${esc(r.updated_at.replace("T", " "))}</bdi></div></div>
       </div>
+      ${isUsdRow(r) ? "" : `<div class="cost-tag" style="margin-bottom:8px">${costMode(r) === "usd" ? "💵 عبر الدولار" : "🔁 نشتريها ونبيعها بسعر"}</div>`}
       <div class="rate-vals">
-        <div><span class="k">شراء</span><b>${esc(rateText(r, r.buy_rate))}</b></div>
-        <div><span class="k">بيع</span><b>${esc(rateText(r, r.sell_rate))}</b></div>
+        ${costMode(r) === "usd" && !isUsdRow(r)
+          ? `<div style="grid-column:1/-1"><span class="k">سعر البيع للزبون</span><b>${esc(rateText(r, r.sell_rate))}</b></div>`
+          : `<div><span class="k">شراء</span><b>${esc(rateText(r, r.buy_rate))}</b></div>
+             <div><span class="k">بيع</span><b>${esc(rateText(r, r.sell_rate))}</b></div>`}
       </div>
       <div class="item-actions">
         <button class="btn sm ghost" data-act="edit">تعديل السعر</button>
@@ -454,19 +494,25 @@ function openRateForm(r) {
   editingRate = r ? r.id : null;
   const f = $("rate-form"); f.reset();
   if (r) for (const el of f.elements) if (el.name) el.value = r[el.name] ?? "";
+  if (!r) f.elements.mode.value = "direct";
   $("rate-form-title").textContent = r ? `تعديل ${r.name}` : "إضافة عملة";
   $("rate-err").classList.add("hidden");
   $("rate-form-card").classList.remove("hidden");
   updateRateHints();
   $("rate-form-card").scrollIntoView({ behavior: "smooth", block: "center" });
-  (r ? f.elements.buy_rate : f.elements.name).focus();
+  (r ? (f.elements.buy_rate.offsetParent ? f.elements.buy_rate : f.elements.sell_rate) : f.elements.name).focus();
 }
 function updateRateHints() {
   const f = $("rate-form");
-  const h = unitHint({ unit: f.elements.unit.value, code: f.elements.code.value.toUpperCase() });
+  const code = f.elements.code.value.toUpperCase();
+  const h = unitHint({ unit: f.elements.unit.value, code });
   document.querySelectorAll(".rate-hint").forEach(el => el.textContent = h);
+  // Currencies dealt via dollars only need the customer (sell) rate; their cost comes from the dollar price.
+  const usdMode = f.elements.mode.value === "usd" && code !== "USD";
+  $("buy-field").classList.toggle("hidden", usdMode);
+  f.elements.mode.closest(".field").classList.toggle("hidden", code === "USD");
 }
-["unit", "code"].forEach(n => $("rate-form").elements[n].addEventListener("input", updateRateHints));
+["unit", "code", "mode"].forEach(n => $("rate-form").elements[n].addEventListener("input", updateRateHints));
 $("add-rate").addEventListener("click", () => openRateForm(null));
 $("rate-cancel").addEventListener("click", () => $("rate-form-card").classList.add("hidden"));
 $("rate-form").addEventListener("submit", async e => {
@@ -481,7 +527,7 @@ $("rate-form").addEventListener("submit", async e => {
     $("rate-form-card").classList.add("hidden");
     await loadRates(); renderRates();
     settings = await api("/api/settings");
-    if (!editingTx && !$("f-usd").value) { $("f-rate").value = settings.usd_rate ?? ""; recalc(); }
+    if (!editingTx && !$("f-usd").value) { $("f-rate").value = settings.usd_rate ?? ""; onTxCurrency(false); }
   } catch (ex) { $("rate-err").textContent = ex.message; $("rate-err").classList.remove("hidden"); }
 });
 $("rates-list").addEventListener("click", async e => {
@@ -497,8 +543,9 @@ $("share-rates").addEventListener("click", async () => {
   for (const r of rates) {
     if (!r.buy_rate && !r.sell_rate) continue;
     const parts = [];
-    if (r.buy_rate) parts.push(`شراء: ${rateText(r, r.buy_rate)}`);
+    if (r.buy_rate && costMode(r) === "direct" || r.buy_rate && isUsdRow(r)) parts.push(`شراء: ${rateText(r, r.buy_rate)}`);
     if (r.sell_rate) parts.push(`بيع: ${rateText(r, r.sell_rate)}`);
+    if (!parts.length) continue;
     lines.push(`${r.flag} ${r.name}`.trim(), ...parts, "");
   }
   const text = lines.join("\n").trim();
@@ -506,44 +553,93 @@ $("share-rates").addEventListener("click", async () => {
   catch (_) { window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank"); }
 });
 
-// Calculator: customer pays MRU -> receives currency, using the sell rate (or buy rate if no sell rate).
+// ---------------------------------------------------------------- calculator (independent)
 const calcRate = () => rates.find(x => x.id === +$("calc-cur").value);
 function calc(from) {
-  const r = calcRate();
-  $("calc-code").textContent = r ? r.code : "";
-  const v = r && (r.sell_rate || r.buy_rate);
-  $("calc-hint").textContent = r ? (v ? `بسعر ${rateText(r, v)}` : "ضع سعراً لهذه العملة في تبويب أسعار الصرف") : "";
+  const r = calcRate(), v = sellOf(r);
+  $("c-code").textContent = r ? r.code : "";
+  $("calc-hint").textContent = r ? (v ? `بسعر ${rateText(r, v)}` : "ضع سعر البيع لهذه العملة في تبويب أسعار الصرف") : "";
   if (!v) return;
-  const toFx = m => r.unit === "per100" ? m * v / 100 : m / v;
-  const toMru = x => r.unit === "per100" ? x * 100 / v : x * v;
-  if (from === "mru") { const m = numOf($("f-paid").value); $("calc-fx").value = m > 0 ? +toFx(m).toFixed(2) : ""; }
-  else { const x = numOf($("calc-fx").value); $("f-paid").value = x > 0 ? +toMru(x).toFixed(2) : ""; }
+  if (from === "mru") { const m = numOf($("c-mru").value); $("c-fx").value = m > 0 ? +fxFromMru(r, v, m).toFixed(2) : ""; }
+  else { const x = numOf($("c-fx").value); $("c-mru").value = x > 0 ? +mruFromFx(r, v, x).toFixed(2) : ""; }
 }
-$("f-paid").addEventListener("input", () => { calc("mru"); recalc(); });
-$("calc-fx").addEventListener("input", () => { calc("fx"); recalc(); });
+$("c-mru").addEventListener("input", () => calc("mru"));
+$("c-fx").addEventListener("input", () => calc("fx"));
 $("calc-cur").addEventListener("change", () => {
   try { localStorage.setItem("jisr_calc_cur", $("calc-cur").value); } catch (_) {}
-  calc("mru"); recalc();
+  calc("mru");
+});
+$("calc-to-tx").addEventListener("click", () => {
+  if (editingTx) resetForm();
+  $("tx-cur").value = $("calc-cur").value;
+  onTxCurrency(true);
+  $("f-paid").value = $("c-mru").value; $("f-fx").value = $("c-fx").value;
+  syncUsdFromFx(); recalc();
+  $("tx-card").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-// ---------------------------------------------------------------- transaction form
-let editingTx = null;
+// ---------------------------------------------------------------- transaction form (independent)
+let editingTx = null, usdTouched = false;
+const txRate = () => rates.find(x => x.id === +$("tx-cur").value);
+const txMode = () => costMode(txRate());
 
-function recalc() {
-  const rate = numOf($("f-rate").value), usd = numOf($("f-usd").value), paid = numOf($("f-paid").value);
-  const box = $("profit-value"), detail = $("profit-detail");
-  if (rate > 0 && usd > 0) {
-    const cost = rate * usd;
-    detail.textContent = `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(cost)} أوقية`;
-    if (paid > 0) { const p = paid - cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); return; }
-  } else detail.textContent = "";
-  box.textContent = "—"; box.className = "value";
+// Currency changed in the transaction form: show the right cost fields and default prices.
+function onTxCurrency(resetPrices) {
+  const r = txRate(), mode = txMode();
+  $("f-code").textContent = r ? r.code : "";
+  $("cost-usd").classList.toggle("hidden", mode !== "usd");
+  $("cost-direct").classList.toggle("hidden", mode !== "direct");
+  $("cost-usd").querySelector(".cost-tag").classList.toggle("hidden", isUsdRow(r));
+  if (r && mode === "direct") {
+    if (resetPrices || !$("f-buy").value) $("f-buy").value = r.buy_rate ?? "";
+    $("f-buy-hint").textContent = unitHint(r);
+  }
+  recalc();
 }
-["f-rate", "f-usd"].forEach(id => $(id).addEventListener("input", recalc));
+$("tx-cur").addEventListener("change", () => {
+  try { localStorage.setItem("jisr_tx_cur", $("tx-cur").value); } catch (_) {}
+  onTxCurrency(true); txConvert("mru");
+});
+
+// Paid <-> received, using the currency's sell rate (only fills the other field when a rate exists).
+function txConvert(from) {
+  const r = txRate(), v = sellOf(r);
+  if (!v) return;
+  if (from === "mru") { const m = numOf($("f-paid").value); $("f-fx").value = m > 0 ? +fxFromMru(r, v, m).toFixed(2) : ""; }
+  else { const x = numOf($("f-fx").value); $("f-paid").value = x > 0 ? +mruFromFx(r, v, x).toFixed(2) : ""; }
+}
+// When the customer receives dollars, the dollar cost is the amount received (unless typed by hand).
+function syncUsdFromFx() {
+  if (isUsdRow(txRate()) && !usdTouched) $("f-usd").value = $("f-fx").value;
+}
+$("f-paid").addEventListener("input", () => { txConvert("mru"); syncUsdFromFx(); recalc(); });
+$("f-fx").addEventListener("input", () => { txConvert("fx"); syncUsdFromFx(); recalc(); });
+$("f-usd").addEventListener("input", () => { usdTouched = true; recalc(); });
+["f-rate", "f-buy"].forEach(id => $(id).addEventListener("input", recalc));
+
+function txCost() {
+  const r = txRate();
+  if (txMode() === "direct") {
+    const buy = numOf($("f-buy").value), fx = numOf($("f-fx").value);
+    if (!(buy > 0) || !(fx > 0) || !r) return { cost: NaN, text: !(fx > 0) ? "اكتب المبلغ الذي استلمه الزبون" : "اكتب سعر الشراء" };
+    const cost = mruFromFx(r, buy, fx);
+    return { cost, text: `التكلفة: ${fmt(fx)} ${r.code} بسعر الشراء = ${fmt(cost)} أوقية` };
+  }
+  const rate = numOf($("f-rate").value), usd = numOf($("f-usd").value);
+  if (!(rate > 0) || !(usd > 0)) return { cost: NaN, text: "" };
+  return { cost: rate * usd, text: `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(rate * usd)} أوقية` };
+}
+function recalc() {
+  const { cost, text } = txCost(), paid = numOf($("f-paid").value);
+  const box = $("profit-value");
+  $("profit-detail").textContent = text;
+  if (cost > 0 && paid > 0) { const p = paid - cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); }
+  else { box.textContent = "—"; box.className = "value"; }
+}
 
 function resetForm() {
-  editingTx = null;
-  ["f-usd", "f-paid", "calc-fx", "f-customer", "f-note"].forEach(id => $(id).value = "");
+  editingTx = null; usdTouched = false;
+  ["f-usd", "f-paid", "f-fx", "f-buy", "f-customer", "f-note"].forEach(id => $(id).value = "");
   $("f-rate").value = settings.usd_rate ?? "";
   $("f-date").value = localDT();
   const lastM = methodById(settings.last_method_id);
@@ -552,19 +648,23 @@ function resetForm() {
   $("editing-bar").classList.add("hidden"); $("form-title").classList.remove("hidden");
   $("tx-save").textContent = "حفظ المعاملة";
   $("tx-err").classList.add("hidden");
-  recalc();
+  onTxCurrency(true);
 }
 $("cancel-edit").addEventListener("click", resetForm);
 
 function editTx(t) {
   switchTab("home");
-  editingTx = t.id;
+  editingTx = t.id; usdTouched = true;
   pickedMethod = t.method_id; renderMethodPick();
-  $("f-rate").value = t.usd_rate; $("f-usd").value = t.usd_amount; $("f-paid").value = t.mru_paid;
   const tr = rates.find(r => r.code === t.to_currency);
-  if (tr) $("calc-cur").value = tr.id;
-  $("calc-code").textContent = tr ? tr.code : (t.to_currency || "");
-  $("calc-fx").value = t.to_amount ?? "";
+  if (tr) $("tx-cur").value = tr.id;
+  $("f-paid").value = t.mru_paid; $("f-fx").value = t.to_amount ?? "";
+  $("f-rate").value = t.usd_rate || (settings.usd_rate ?? ""); $("f-usd").value = t.usd_amount || "";
+  $("f-buy").value = t.cur_buy_rate ?? "";
+  onTxCurrency(false);
+  if (t.cost_type === "direct" && txMode() !== "direct") {   // currency setting changed since; keep the saved way
+    $("cost-usd").classList.add("hidden"); $("cost-direct").classList.remove("hidden");
+  }
   $("f-date").value = t.tx_date; $("f-customer").value = t.customer; $("f-note").value = t.note;
   if (t.customer || t.note) document.querySelector("#tx-form details").open = true;
   $("editing-bar").classList.remove("hidden"); $("form-title").classList.add("hidden");
@@ -576,19 +676,22 @@ function editTx(t) {
 $("tx-form").addEventListener("submit", async e => {
   e.preventDefault();
   $("tx-err").classList.add("hidden");
+  const r = txRate();
+  const direct = !$("cost-direct").classList.contains("hidden");
   const body = {
-    method_id: pickedMethod, usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
-    mru_paid: normDigits($("f-paid").value), tx_date: $("f-date").value,
-    to_currency: numOf($("calc-fx").value) > 0 ? (calcRate()?.code || "") : "",
-    to_amount: normDigits($("calc-fx").value),
+    method_id: pickedMethod, mru_paid: normDigits($("f-paid").value), tx_date: $("f-date").value,
+    to_currency: r ? r.code : "", to_amount: normDigits($("f-fx").value),
+    cost_type: direct ? "direct" : "usd",
+    usd_rate: normDigits($("f-rate").value), usd_amount: normDigits($("f-usd").value),
+    cur_buy_rate: normDigits($("f-buy").value), rate_unit: r ? r.unit : "per_unit",
     customer: $("f-customer").value, note: $("f-note").value,
   };
   const btn = $("tx-save"); btn.disabled = true;
   try {
     if (editingTx) { await api(`/api/transactions/${editingTx}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
     else {
-      const r = await api("/api/transactions", { method: "POST", body });
-      toast(`تم الحفظ · الربح ${signed(r.profit)} أوقية`);
+      const res = await api("/api/transactions", { method: "POST", body });
+      toast(`تم الحفظ · الربح ${signed(res.profit)} أوقية`);
       settings = await api("/api/settings");
     }
     resetForm(); loadHome();
@@ -604,8 +707,10 @@ function txRow(t) {
       <div class="tx">
         ${logoHtml(m)}
         <div class="main">
-          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""} · كلّف <bdi>${fmt(t.usd_amount)} $</bdi></div>
-          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi> · ${esc(t.method_name)} · سعر الدولار <bdi>${fmt(t.usd_rate, 4)}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
+          <div class="title">دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""}${t.cost_type === "direct" ? "" : ` · كلّف <bdi>${fmt(t.usd_amount)} $</bdi>`}</div>
+          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi> · ${esc(t.method_name)} · ${t.cost_type === "direct"
+            ? `سعر الشراء <bdi>${fmt(t.cur_buy_rate, 4)}</bdi>`
+            : `سعر الدولار <bdi>${fmt(t.usd_rate, 4)}</bdi>`}${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
         </div>
         <div class="profit ${cls(t.profit)}">${signed(t.profit)}<small>أوقية</small></div>
       </div>
