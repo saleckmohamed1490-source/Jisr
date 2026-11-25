@@ -181,7 +181,21 @@ def init_db():
         updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(tx_date DESC);
+    CREATE TABLE IF NOT EXISTS rates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL,
+        name TEXT NOT NULL,
+        flag TEXT NOT NULL DEFAULT '',
+        unit TEXT NOT NULL DEFAULT 'per_unit',
+        buy_rate REAL,
+        sell_rate REAL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+    );
     """)
+    if db.execute("SELECT COUNT(*) FROM rates").fetchone()[0] == 0:
+        db.execute("INSERT INTO rates (code, name, flag, unit, updated_at) VALUES ('USD', 'الدولار', '💵', 'per_unit', ?)",
+                   (now_local(),))
     if db.execute("SELECT COUNT(*) FROM payment_methods").fetchone()[0] == 0:
         for i, (name, color) in enumerate([("بنكيلي", "#e07a1f"), ("سداد", "#1f6fe0"), ("مصريفي", "#0e9f6e")]):
             db.execute("INSERT INTO payment_methods (name, color, sort_order) VALUES (?, ?, ?)", (name, color, i))
@@ -405,6 +419,73 @@ def logo_file(mid):
 
 
 # ---------------------------------------------------------------------------
+# Exchange rates board
+#   unit 'per_unit': 1 unit of the currency = X MRU        (e.g. 1 USD = 40.2 MRU)
+#   unit 'per100'  : 100 MRU = X units of the currency     (e.g. 100 MRU = 53 SLE)
+# The USD row's buy rate is the default dollar price in the transaction form.
+# ---------------------------------------------------------------------------
+RATE_UNITS = ("per_unit", "per100")
+
+
+@app.get("/api/rates")
+@login_required
+def api_rates():
+    rows = get_db().execute("SELECT * FROM rates ORDER BY sort_order, id").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+def rate_payload(d):
+    p = {
+        "code": str(d.get("code") or "").strip().upper()[:6],
+        "name": str(d.get("name") or "").strip()[:40],
+        "flag": str(d.get("flag") or "").strip()[:16],
+        "unit": d.get("unit") if d.get("unit") in RATE_UNITS else "per_unit",
+        "sort_order": int(num(d.get("sort_order")) or 0),
+    }
+    if not p["code"] or not p["name"]:
+        return None
+    for f in ("buy_rate", "sell_rate"):
+        v = num(d.get(f))
+        p[f] = v if v and v > 0 else None
+    p["updated_at"] = now_local()
+    return p
+
+
+@app.post("/api/rates")
+@login_required
+def api_rate_create():
+    p = rate_payload(request.get_json(silent=True) or {})
+    if not p:
+        return err("required")
+    db = get_db()
+    new_id = db.execute(f"INSERT INTO rates ({', '.join(p)}) VALUES ({', '.join('?' * len(p))}) RETURNING id",
+                        list(p.values())).fetchone()["id"]
+    db.commit()
+    return jsonify({"ok": True, "id": new_id}), 201
+
+
+@app.put("/api/rates/<int:rid>")
+@login_required
+def api_rate_update(rid):
+    p = rate_payload(request.get_json(silent=True) or {})
+    if not p:
+        return err("required")
+    db = get_db()
+    cur = db.execute(f"UPDATE rates SET {', '.join(f'{k} = ?' for k in p)} WHERE id = ?", list(p.values()) + [rid])
+    db.commit()
+    return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
+
+
+@app.delete("/api/rates/<int:rid>")
+@login_required
+def api_rate_delete(rid):
+    db = get_db()
+    db.execute("DELETE FROM rates WHERE id = ?", (rid,))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
 # Transactions
 # ---------------------------------------------------------------------------
 def tx_payload(d):
@@ -417,7 +498,7 @@ def tx_payload(d):
     paid = num(d.get("mru_paid"))
     if not paid or paid <= 0 or paid > 1e12:
         return None, "bad_mru"
-    method = get_db().execute("SELECT * FROM payment_methods WHERE id = ?",
+    method = get_db().execute("SELECT id, name FROM payment_methods WHERE id = ?",
                               (int(num(d.get("method_id")) or 0),)).fetchone()
     if not method:
         return None, "bad_method"
@@ -444,7 +525,9 @@ def tx_payload(d):
 @app.get("/api/settings")
 @login_required
 def api_settings():
-    return jsonify({"last_usd_rate": num(get_setting("last_usd_rate")),
+    usd = get_db().execute("SELECT buy_rate FROM rates WHERE code = 'USD' AND buy_rate IS NOT NULL "
+                           "ORDER BY id LIMIT 1").fetchone()
+    return jsonify({"usd_rate": usd["buy_rate"] if usd else num(get_setting("last_usd_rate")),
                     "last_method_id": num(get_setting("last_method_id"))})
 
 

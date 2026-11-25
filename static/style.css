@@ -326,3 +326,18 @@ h3 { font-size: 16px; }
 .method-edit { display: flex; gap: 14px; align-items: flex-start; }
 .method-edit .fields { flex: 1; min-width: 0; }
 .color-input { width: 48px; height: 44px; padding: 2px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); }
+
+/* ---- Exchange rates ---- */
+.rate-strip { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
+.rate-chip {
+  flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); cursor: pointer; font-size: 14px;
+}
+.rate-chip b { color: var(--primary); }
+.rate-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.rate-row:last-child { border-bottom: 0; }
+.rate-name { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.rate-vals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.rate-vals > div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.rate-vals .k { display: block; font-size: 12px; color: var(--muted); }
+.rate-vals b { font-size: 15px; }
