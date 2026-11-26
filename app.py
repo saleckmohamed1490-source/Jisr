@@ -660,8 +660,13 @@ def api_tx_delete(tid):
     return jsonify({"ok": True})
 
 
+KIND_SQL = {"exchange": "app_id IS NULL", "topup": "app_id IS NOT NULL"}  # exchange ops vs app top-ups
+
+
 def tx_filters():
     where, params = [], []
+    if request.args.get("kind") in KIND_SQL:
+        where.append(KIND_SQL[request.args["kind"]])
     if request.args.get("from"):
         where.append("tx_date >= ?")
         params.append(request.args["from"][:10])
@@ -679,6 +684,14 @@ def tx_filters():
         where.append("(customer LIKE ? OR note LIKE ? OR package LIKE ?)")
         params += [f"%{q}%", f"%{q}%", f"%{q}%"]
     return (" WHERE " + " AND ".join(where)) if where else "", params
+
+
+def period_totals(db, prefix):
+    """Totals for a day/month prefix, overall and per kind (exchange / top-up)."""
+    out = totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (prefix + "%",)).fetchone())
+    for kind, cond in KIND_SQL.items():
+        out[kind] = totals(db.execute(f"{TOTALS_SQL} WHERE tx_date LIKE ? AND {cond}", (prefix + "%",)).fetchone())
+    return out
 
 
 TOTALS_SQL = ("SELECT COUNT(*) n, COALESCE(SUM(profit),0) profit, COALESCE(SUM(mru_paid),0) mru, "
@@ -721,8 +734,8 @@ def api_summary():
              for d in ((datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1))]
 
     return jsonify({
-        "today": totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (today + "%",)).fetchone()),
-        "month": totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (today[:7] + "%",)).fetchone()),
+        "today": period_totals(db, today),
+        "month": period_totals(db, today[:7]),
         "filtered": totals(db.execute(TOTALS_SQL + where, params).fetchone()),
         "by_method": [dict(r) for r in by_method],
         "by_app": [dict(r) for r in by_app],

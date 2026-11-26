@@ -108,6 +108,14 @@
         </div>
       </div>
 
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="margin:0">آخر عمليات الصرف</h3>
+          <button class="btn sm ghost" data-goto-kind="exchange">عرض الكل</button>
+        </div>
+        <div class="tx-box" id="recent-exchange"></div>
+      </div>
+
       <!-- Save a transaction (independent) -->
       <div class="card" id="tx-card">
         <div class="editing-bar hidden" id="editing-bar">
@@ -172,26 +180,32 @@
       </div>
 
       <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="margin:0">آخر عمليات الشحن</h3>
+          <button class="btn sm ghost" data-goto-kind="topup">عرض الكل</button>
+        </div>
+        <div class="tx-box" id="recent-topup"></div>
+      </div>
+
+      <div class="card">
         <h3>الربح في آخر ١٤ يوم</h3>
         <div class="bars" id="bars"></div>
       </div>
 
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <h3 style="margin:0">آخر المعاملات</h3>
-          <button class="btn sm ghost" data-goto="list">عرض الكل</button>
-        </div>
-        <div id="recent"></div>
-      </div>
     </div>
 
     <!-- List / reports -->
     <div id="tab-list" class="hidden">
+      <div class="seg" id="q-kind" style="margin-bottom:12px">
+        <button type="button" data-kind="exchange">💱 الصرف</button>
+        <button type="button" data-kind="topup">📱 الشحن</button>
+        <button type="button" data-kind="">الكل</button>
+      </div>
       <div class="card">
         <div class="filters">
           <div><label class="small muted">من</label><input class="input ltr" type="date" id="q-from"></div>
           <div><label class="small muted">إلى</label><input class="input ltr" type="date" id="q-to"></div>
-          <div><label class="small muted">التطبيق</label><select class="input" id="q-app"></select></div>
+          <div id="q-app-field"><label class="small muted">التطبيق</label><select class="input" id="q-app"></select></div>
           <div><label class="small muted">طريقة الدفع</label><select class="input" id="q-method"></select></div>
           <div><label class="small muted">بحث</label><input class="input" id="q-text" placeholder="زبون، باقة أو ملاحظة"></div>
         </div>
@@ -217,7 +231,7 @@
 
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <h3 style="margin:0">المعاملات</h3>
+          <h3 style="margin:0" id="list-title">عمليات الصرف</h3>
           <a class="btn sm ghost" id="csv">تصدير Excel</a>
         </div>
         <div id="tx-list"></div>
@@ -986,12 +1000,12 @@ function txRow(t) {
     </div>`;
 }
 const txCache = {};
-function renderTxList(el, rows) {
+function renderTxList(el, rows, emptyMsg = "لا توجد عمليات") {
   rows.forEach(r => txCache[r.id] = r);
-  el.innerHTML = rows.map(txRow).join("") || `<p class="muted center">لا توجد معاملات</p>`;
+  el.innerHTML = rows.map(txRow).join("") || `<p class="muted center">${emptyMsg}</p>`;
 }
 document.addEventListener("click", e => {
-  const btn = e.target.closest("#recent [data-act], #tx-list [data-act]"); if (!btn) return;
+  const btn = e.target.closest(".tx-box [data-act], #tx-list [data-act]"); if (!btn) return;
   const t = txCache[btn.closest(".item").dataset.id];
   if (btn.dataset.act === "edit") editTx(t);
   else confirmTap(btn, async () => {
@@ -1004,17 +1018,20 @@ const stat = (label, value, sub, colorCls = "") =>
   `<div class="stat"><div class="label">${label}</div><div class="value ${colorCls}">${value}</div>${sub ? `<div class="small muted">${sub}</div>` : ""}</div>`;
 
 async function loadHome() {
-  const [s, recent] = await Promise.all([api("/api/summary"), api("/api/transactions?limit=5")]);
+  const [s, recentEx, recentTop] = await Promise.all([
+    api("/api/summary"), api("/api/transactions?limit=5&kind=exchange"), api("/api/transactions?limit=5&kind=topup")]);
+  const split = p => `صرف <bdi>${signed(p.exchange.profit)}</bdi> · شحن <bdi>${signed(p.topup.profit)}</bdi>`;
   $("stats").innerHTML =
-    stat("ربح اليوم", signed(s.today.profit), `أوقية · ${s.today.count} معاملة`, cls(s.today.profit)) +
-    stat("ربح هذا الشهر", signed(s.month.profit), `أوقية · ${s.month.count} معاملة`, cls(s.month.profit));
+    stat("ربح اليوم", signed(s.today.profit), split(s.today), cls(s.today.profit)) +
+    stat("ربح هذا الشهر", signed(s.month.profit), split(s.month), cls(s.month.profit));
   const max = Math.max(1, ...s.daily.map(d => Math.abs(d.profit)));
   $("bars").innerHTML = s.daily.map(d => `
     <div class="bar" title="${d.date}: ${fmt(d.profit)} أوقية">
       <div class="fill ${d.profit < 0 ? "neg" : d.profit === 0 ? "zero" : ""}" style="height:${Math.abs(d.profit) / max * 100}%"></div>
       <div class="lbl">${+d.date.slice(8)}</div>
     </div>`).join("");
-  renderTxList($("recent"), recent);
+  renderTxList($("recent-exchange"), recentEx, "لا توجد عمليات صرف بعد");
+  renderTxList($("recent-topup"), recentTop, "لا توجد عمليات شحن بعد");
 }
 
 // ---------------------------------------------------------------- list / reports
@@ -1034,8 +1051,24 @@ $("q-method").addEventListener("change", loadList);
 $("q-app").addEventListener("change", loadList);
 let qTimer; $("q-text").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(loadList, 300); });
 
+// Reports show exchange operations or app top-ups separately (or both).
+let listKind = "exchange";
+function renderKind() {
+  document.querySelectorAll("#q-kind button").forEach(b => b.classList.toggle("on", b.dataset.kind === listKind));
+  $("q-app-field").classList.toggle("hidden", listKind === "exchange");
+  if (listKind === "exchange") $("q-app").value = "";
+  $("list-title").textContent = { exchange: "عمليات الصرف", topup: "عمليات الشحن", "": "كل العمليات" }[listKind];
+}
+$("q-kind").addEventListener("click", e => {
+  const b = e.target.closest("button[data-kind]"); if (!b) return;
+  listKind = b.dataset.kind; renderKind(); loadList();
+});
+document.querySelectorAll("[data-goto-kind]").forEach(b => b.addEventListener("click", () => {
+  listKind = b.dataset.gotoKind; renderKind(); switchTab("list");
+}));
 function listQuery() {
   const p = new URLSearchParams();
+  if (listKind) p.set("kind", listKind);
   if ($("q-from").value) p.set("from", $("q-from").value);
   if ($("q-to").value) p.set("to", $("q-to").value);
   if ($("q-method").value) p.set("method_id", $("q-method").value);
@@ -1050,11 +1083,11 @@ async function loadList() {
   const f = s.filtered;
   $("list-stats").innerHTML =
     stat("الربح", signed(f.profit), "أوقية", cls(f.profit)) +
-    stat("عدد المعاملات", f.count) +
+    stat("عدد العمليات", f.count) +
     stat("دفع الزبائن", fmt(f.mru_paid), "أوقية") +
     stat("الدولار المصروف", fmt(f.usd) + " $", `تكلفته ${fmt(f.cost_mru)} أوقية`);
   const withApp = s.by_app.filter(r => r.app_id);
-  $("by-app-card").classList.toggle("hidden", !withApp.length);
+  $("by-app-card").classList.toggle("hidden", !withApp.length || listKind === "exchange");
   $("by-app").innerHTML = `<tr><th>التطبيق</th><th>عدد</th><th>دفع الزبائن</th><th>الدولار</th><th>الربح</th></tr>` +
     withApp.map(r => {
       const a = appById(r.app_id) || { name: r.app_name, color: "#6b7280" };
@@ -1075,11 +1108,12 @@ async function loadList() {
         <td class="num">${fmt(r.mru_paid)}</td>
         <td class="num ${cls(r.profit)}">${signed(r.profit)}</td></tr>`;
     }).join("");
-  renderTxList($("tx-list"), rows);
+  renderTxList($("tx-list"), rows, listKind === "topup" ? "لا توجد عمليات شحن" : listKind === "exchange" ? "لا توجد عمليات صرف" : "لا توجد عمليات");
 }
 
 // ---------------------------------------------------------------- start
 setRange("month");
+renderKind();
 boot();
 </script>
 </body>
