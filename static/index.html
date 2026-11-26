@@ -81,6 +81,31 @@
           <label>الزبون دفع على</label>
           <div class="methods" id="calc-method-pick"></div>
         </div>
+
+        <!-- Only for currencies dealt via dollars (cost = dollars x dollar price) -->
+        <div class="two hidden" id="calc-usd-cost">
+          <div class="field">
+            <label for="c-rate">سعر الدولار</label>
+            <div class="input-wrap"><input class="input ltr" id="c-rate" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">أوقية</span></div>
+          </div>
+          <div class="field">
+            <label for="c-usd">كم كلّف من دولار</label>
+            <div class="input-wrap"><input class="input ltr" id="c-usd" inputmode="decimal" autocomplete="off" placeholder="0"><span class="suffix">$</span></div>
+          </div>
+        </div>
+
+        <div class="profit-box">
+          <div>
+            <div style="font-weight:700">الربح</div>
+            <div class="sub" id="c-profit-detail"></div>
+          </div>
+          <div class="value" id="c-profit">—</div>
+        </div>
+        <div class="alert error hidden" id="calc-err"></div>
+        <div class="row" style="gap:8px">
+          <button type="button" class="btn ghost hidden" id="calc-cancel" style="flex:0 0 auto">إلغاء</button>
+          <button type="button" class="btn primary block" id="calc-save">حفظ العملية</button>
+        </div>
       </div>
 
       <!-- Save a transaction (independent) -->
@@ -349,7 +374,7 @@ let settings = {};
 async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
   [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
-  resetForm();
+  resetForm(); resetCalc();
   switchTab("home");
 }
 
@@ -496,7 +521,7 @@ async function loadRates() {
   rates = await api("/api/rates");
   renderRateStrip();
   fillCurSelect($("calc-cur"), "jisr_calc_cur");
-  calc("mru");
+  calc("mru"); calcProfit();
 }
 
 function renderRateStrip() {
@@ -774,12 +799,94 @@ function calc(from) {
   if (from === "mru") { const m = numOf($("c-mru").value); $("c-fx").value = m > 0 ? +fxFromMru(r, v, m).toFixed(2) : ""; }
   else { const x = numOf($("c-fx").value); $("c-mru").value = x > 0 ? +mruFromFx(r, v, x).toFixed(2) : ""; }
 }
-$("c-mru").addEventListener("input", () => calc("mru"));
-$("c-fx").addEventListener("input", () => calc("fx"));
+$("c-mru").addEventListener("input", () => { calc("mru"); calcProfit(); });
+$("c-fx").addEventListener("input", () => { calc("fx"); calcProfit(); });
+["c-rate", "c-usd"].forEach(id => $(id).addEventListener("input", calcProfit));
 $("calc-cur").addEventListener("change", () => {
   try { localStorage.setItem("jisr_calc_cur", $("calc-cur").value); } catch (_) {}
-  calc("mru");
+  calc("mru"); calcProfit();
 });
+
+// ---- saving an exchange operation from the calculator
+// Cost of what the customer received, by currency type:
+//   own buy price -> received amount valued at the buy rate
+//   the dollar    -> received dollars x dollar price
+//   via dollars   -> dollars spent x dollar price (typed in the calculator)
+let editingCalc = null;
+function calcCost() {
+  const r = calcRate(), fx = numOf($("c-fx").value);
+  if (!r) return { error: "اختر العملة" };
+  const viaUsd = costMode(r) === "usd" && !isUsdRow(r);
+  $("calc-usd-cost").classList.toggle("hidden", !viaUsd);
+  if (!(fx > 0)) return { error: "" };
+  if (isUsdRow(r)) {
+    const price = r.buy_rate || settings.usd_rate;
+    if (!(price > 0)) return { error: "ضع سعر شراء الدولار في تبويب الأسعار" };
+    return { cost: fx * price, text: `التكلفة: ${fmt(fx)} $ × ${fmt(price, 4)} = ${fmt(fx * price)} أوقية`,
+             body: { cost_type: "usd", usd_rate: price, usd_amount: fx } };
+  }
+  if (!viaUsd) {
+    if (!(r.buy_rate > 0)) return { error: "ضع سعر الشراء لهذه العملة في تبويب الأسعار" };
+    const cost = mruFromFx(r, r.buy_rate, fx);
+    return { cost, text: `التكلفة: ${fmt(fx)} ${r.code} بسعر الشراء = ${fmt(cost)} أوقية`,
+             body: { cost_type: "direct", cur_buy_rate: r.buy_rate, rate_unit: r.unit } };
+  }
+  const rate = numOf($("c-rate").value), usd = numOf($("c-usd").value);
+  if (!(rate > 0) || !(usd > 0)) return { error: "اكتب سعر الدولار وكم كلّف من دولار" };
+  return { cost: rate * usd, text: `التكلفة: ${fmt(usd)} $ × ${fmt(rate, 4)} = ${fmt(rate * usd)} أوقية`,
+           body: { cost_type: "usd", usd_rate: rate, usd_amount: usd } };
+}
+function calcProfit() {
+  const c = calcCost(), paid = numOf($("c-mru").value), box = $("c-profit");
+  $("c-profit-detail").textContent = c.text || c.error || "";
+  if (c.cost > 0 && paid > 0) { const p = paid - c.cost; box.textContent = `${signed(p)} أوقية`; box.className = "value " + cls(p); }
+  else { box.textContent = "—"; box.className = "value"; }
+}
+function resetCalc() {
+  editingCalc = null;
+  ["c-mru", "c-fx", "c-usd"].forEach(id => $(id).value = "");
+  $("c-rate").value = settings.usd_rate ?? "";
+  $("calc-save").textContent = "حفظ العملية";
+  $("calc-cancel").classList.add("hidden");
+  $("calc-err").classList.add("hidden");
+  calc("mru"); calcProfit();
+}
+$("calc-cancel").addEventListener("click", resetCalc);
+$("calc-save").addEventListener("click", async () => {
+  $("calc-err").classList.add("hidden");
+  const r = calcRate(), c = calcCost(), paid = numOf($("c-mru").value);
+  const fail = msg => { $("calc-err").textContent = msg; $("calc-err").classList.remove("hidden"); };
+  if (!(paid > 0)) return fail("اكتب المبلغ الذي دفعه الزبون");
+  if (!(numOf($("c-fx").value) > 0)) return fail("اكتب المبلغ الذي يستلمه الزبون");
+  if (!c.body) return fail(c.error || "تعذّر حساب التكلفة");
+  const body = {
+    ...c.body, method_id: calcMethod, mru_paid: paid,
+    to_currency: r.code, to_amount: numOf($("c-fx").value), rate_unit: r.unit,
+    tx_date: editingCalc ? txCache[editingCalc]?.tx_date : localDT(),
+  };
+  const btn = $("calc-save"); btn.disabled = true;
+  try {
+    if (editingCalc) { await api(`/api/transactions/${editingCalc}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
+    else { const res = await api("/api/transactions", { method: "POST", body }); toast(`تم الحفظ · الربح ${signed(res.profit)} أوقية`); }
+    resetCalc(); loadHome();
+  } catch (ex) { fail(ex.message); }
+  finally { btn.disabled = false; }
+});
+// Exchange operations (no app) are edited in the calculator.
+function editCalc(t) {
+  switchTab("home");
+  editingCalc = t.id;
+  const r = rates.find(x => x.code === t.to_currency);
+  if (r) $("calc-cur").value = r.id;
+  calcMethod = t.method_id; renderPicks();
+  $("c-mru").value = t.mru_paid; $("c-fx").value = t.to_amount ?? "";
+  $("c-code").textContent = t.to_currency || "";
+  $("c-rate").value = t.usd_rate || (settings.usd_rate ?? ""); $("c-usd").value = t.usd_amount || "";
+  $("calc-save").textContent = "حفظ التعديل";
+  $("calc-cancel").classList.remove("hidden");
+  calcProfit();
+  $("calc-card").scrollIntoView({ behavior: "smooth" });
+}
 // ---------------------------------------------------------------- app top-up form (independent)
 // Top-ups are paid with dollars: profit = customer paid - dollars x dollar price.
 let editingTx = null;
@@ -815,6 +922,7 @@ function resetForm() {
 $("cancel-edit").addEventListener("click", resetForm);
 
 function editTx(t) {
+  if (!t.app_id) return editCalc(t);
   switchTab("home");
   editingTx = t.id;
   pickedMethod = t.method_id; pickedApp = t.app_id; renderPicks();
@@ -856,7 +964,7 @@ function txRow(t) {
   const a = t.app_id ? (appById(t.app_id) || { name: t.app_name, color: "#6b7280" }) : null;
   const title = a
     ? `شحن ${esc(t.app_name)}${t.package ? ` · <bdi>${esc(t.package)}</bdi>` : ""}`
-    : `دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""}`;
+    : `صرف · دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية${t.to_amount ? ` · استلم <bdi>${fmt(t.to_amount)} ${esc(t.to_currency)}</bdi>` : ""}`;
   const cost = t.cost_type === "direct"
     ? `سعر الشراء <bdi>${fmt(t.cur_buy_rate, 4)}</bdi>`
     : `كلّف <bdi>${fmt(t.usd_amount)} $</bdi> بسعر <bdi>${fmt(t.usd_rate, 4)}</bdi>`;
