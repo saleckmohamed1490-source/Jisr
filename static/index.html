@@ -38,7 +38,10 @@
         <div class="brand-tag">دفتر المعاملات والأرباح</div>
       </div>
     </div>
-    <button class="btn sm ghost hidden" id="logout">خروج</button>
+    <div class="top-actions">
+      <button class="icon-btn hidden" id="settings-btn" title="الإعدادات" aria-label="الإعدادات"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button class="btn sm ghost hidden" id="logout">خروج</button>
+    </div>
   </header>
 
   <!-- ============ Auth ============ -->
@@ -75,7 +78,7 @@
       <div class="lfield hidden" id="pass-field">
         <label for="a-pass">كلمة المرور</label>
         <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/><circle cx="12" cy="15.4" r="1.3"/><path d="M12 16.7v1.6"/></svg><input class="line-input" id="a-pass" type="password" autocomplete="current-password"></div>
-        <div class="hint">حسابك ما زال بكلمة مرور. بعد الدخول عيّن رمز PIN من تبويب التطبيقات ← الحساب.</div>
+        <div class="hint">حسابك ما زال بكلمة مرور. بعد الدخول عيّن رمز PIN من الإعدادات ⚙️ ← الحساب.</div>
       </div>
       <div class="alert error hidden" id="auth-err"></div>
       <button class="btn primary block" id="auth-btn">دخول</button>
@@ -88,7 +91,7 @@
       <button data-tab="home" class="on"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
       <button data-tab="rates"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4"/><path d="M20 16H6l4 4"/></svg><span>الأسعار</span></button>
       <button data-tab="list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg><span>التقارير</span></button>
-      <button data-tab="methods"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>التطبيقات</span></button>
+      <button data-tab="history"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg><span>السجل</span></button>
     </nav>
 
     <!-- Home -->
@@ -329,8 +332,20 @@
 
     </div>
 
-    <!-- Payment methods -->
+    <!-- History: every operation, newest first, grouped by day -->
+    <div id="tab-history" class="hidden">
+      <div class="seg" id="h-kind" style="margin-bottom:12px">
+        <button type="button" data-kind="" class="on">الكل</button>
+        <button type="button" data-kind="exchange">💱 الصرف</button>
+        <button type="button" data-kind="topup">📱 الشحن</button>
+      </div>
+      <input class="input" id="h-text" placeholder="بحث: زبون، باقة أو ملاحظة" style="margin-bottom:12px">
+      <div id="history-list"></div>
+    </div>
+
+    <!-- Settings: apps, payment methods, account -->
     <div id="tab-methods" class="hidden">
+      <h2 style="margin:4px 0 14px">الإعدادات</h2>
       <p class="muted small" style="margin-top:0">اضغط على المربع لرفع الشعار.</p>
       <h3>التطبيقات</h3>
       <div class="list" id="apps-list"></div>
@@ -448,7 +463,7 @@ async function boot() {
   $("pin2-field").classList.toggle("hidden", !setup);
   $("pin-field").classList.toggle("hidden", !usePin);
   $("pass-field").classList.toggle("hidden", usePin);
-  $("auth").classList.remove("hidden"); $("app").classList.add("hidden"); $("logout").classList.add("hidden");
+  $("auth").classList.remove("hidden"); $("app").classList.add("hidden"); $("logout").classList.add("hidden"); $("settings-btn").classList.add("hidden");
   clearPins();
   setTimeout(() => ($("a-user").value ? (usePin ? $("a-pin") : $("a-pass")) : $("a-user")).focus(), 50);
 }
@@ -473,7 +488,7 @@ $("logout").addEventListener("click", async () => { await api("/api/logout", { m
 
 let settings = {};
 async function enterApp() {
-  $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
+  $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden"); $("settings-btn").classList.remove("hidden");
   [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
   resetForm(); resetCalc();
   switchTab("home");
@@ -484,7 +499,9 @@ let tab = "home";
 function switchTab(name) {
   tab = name;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  ["home", "rates", "list", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  ["home", "rates", "list", "history", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  $("settings-btn").classList.toggle("on", name === "methods");
+  if (name === "history") loadHistory();
   if (name === "home") loadHome();
   if (name === "list") loadList();
   if (name === "methods") { renderList("apps"); renderList("methods"); renderAccount(); }
@@ -493,6 +510,7 @@ function switchTab(name) {
 }
 document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.goto)));
+$("settings-btn").addEventListener("click", () => switchTab("methods"));
 
 // ---------------------------------------------------------------- apps & payment methods
 let methods = [], apps = [];
@@ -528,9 +546,9 @@ const tiles = (items, selected, emptyMsg) => items.filter(m => m.is_active || m.
     </button>`).join("") || `<p class="muted small">${emptyMsg}</p>`;
 function renderPicks() {
   if (calcMethod === null || !methods.some(m => m.id === calcMethod && m.is_active)) calcMethod = pickedMethod;
-  $("method-pick").innerHTML = tiles(methods, pickedMethod, "أضف طريقة دفع من تبويب \"التطبيقات وطرق الدفع\"");
-  $("calc-method-pick").innerHTML = tiles(methods, calcMethod, "أضف طريقة دفع من تبويب \"التطبيقات وطرق الدفع\"");
-  $("app-pick").innerHTML = tiles(apps, pickedApp, "أضف تطبيقاتك من تبويب \"التطبيقات وطرق الدفع\"");
+  $("method-pick").innerHTML = tiles(methods, pickedMethod, "أضف طريقة دفع من الإعدادات ⚙️ في الأعلى");
+  $("calc-method-pick").innerHTML = tiles(methods, calcMethod, "أضف طريقة دفع من الإعدادات ⚙️ في الأعلى");
+  $("app-pick").innerHTML = tiles(apps, pickedApp, "أضف تطبيقاتك من الإعدادات ⚙️ في الأعلى");
 }
 const renderMethodPick = renderPicks;
 const onTile = (id, fn) => $(id).addEventListener("click", e => {
@@ -1122,12 +1140,12 @@ function renderTxList(el, rows, emptyMsg = "لا توجد عمليات") {
   el.innerHTML = rows.map(txRow).join("") || `<p class="muted center">${emptyMsg}</p>`;
 }
 document.addEventListener("click", e => {
-  const btn = e.target.closest(".tx-box [data-act], #tx-list [data-act]"); if (!btn) return;
+  const btn = e.target.closest(".tx-box [data-act], #tx-list [data-act], #history-list [data-act]"); if (!btn) return;
   const t = txCache[btn.closest(".item").dataset.id];
   if (btn.dataset.act === "edit") editTx(t);
   else confirmTap(btn, async () => {
     await api(`/api/transactions/${t.id}`, { method: "DELETE" });
-    toast("تم الحذف"); tab === "home" ? loadHome() : loadList();
+    toast("تم الحذف"); tab === "home" ? loadHome() : tab === "history" ? loadHistory() : loadList();
   });
 });
 
@@ -1150,6 +1168,34 @@ async function loadHome() {
   renderTxList($("recent-exchange"), recentEx, "لا توجد عمليات صرف بعد");
   renderTxList($("recent-topup"), recentTop, "لا توجد عمليات شحن بعد");
 }
+
+// ---------------------------------------------------------------- history
+let historyKind = "";
+const dayTitle = d => new Date(d + "T12:00").toLocaleDateString("ar-u-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+async function loadHistory() {
+  const p = new URLSearchParams({ limit: 500 });
+  if (historyKind) p.set("kind", historyKind);
+  if ($("h-text").value.trim()) p.set("q", $("h-text").value.trim());
+  const rows = await api("/api/transactions?" + p);
+  rows.forEach(r => txCache[r.id] = r);
+  if (!rows.length) { $("history-list").innerHTML = `<div class="card center muted">لا توجد عمليات</div>`; return; }
+  const days = [];
+  for (const r of rows) {
+    const d = r.tx_date.slice(0, 10);
+    if (!days.length || days[days.length - 1].d !== d) days.push({ d, rows: [], profit: 0 });
+    days[days.length - 1].rows.push(r); days[days.length - 1].profit += r.profit;
+  }
+  $("history-list").innerHTML = days.map(day => `
+    <div class="day-head"><span>${esc(dayTitle(day.d))}</span><b class="${cls(day.profit)}"><bdi>${signed(Math.round(day.profit * 100) / 100)}</bdi> أوقية</b></div>
+    ${day.rows.map(txRow).join("")}`).join("");
+}
+$("h-kind").addEventListener("click", e => {
+  const b = e.target.closest("button[data-kind]"); if (!b) return;
+  historyKind = b.dataset.kind;
+  document.querySelectorAll("#h-kind button").forEach(x => x.classList.toggle("on", x === b));
+  loadHistory();
+});
+let hTimer; $("h-text").addEventListener("input", () => { clearTimeout(hTimer); hTimer = setTimeout(loadHistory, 300); });
 
 // ---------------------------------------------------------------- list / reports
 function setRange(r) {
