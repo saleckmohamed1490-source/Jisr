@@ -88,6 +88,7 @@ MESSAGES = {
     "username_taken": "اسم المستخدم مستعمل",
     "last_admin": "لا يمكن: يجب أن يبقى مسؤول واحد على الأقل",
     "not_self": "لا يمكنك حذف حسابك",
+    "translate_failed": "تعذّرت الترجمة الآن، حاول بعد قليل",
     "required": "املأ الحقول المطلوبة",
     "bad_rate": "أدخل سعر الدولار",
     "bad_usd": "أدخل كم كلّف من دولار",
@@ -1143,6 +1144,44 @@ def headers(resp):
 @app.route("/admin")          # same app; opens straight on the settings / admin page
 def index():
     return send_from_directory(STATIC_DIR, "index.html")
+
+
+# ---------------------------------------------------------------------------
+# Free text translation for the voice translator (Arabic <-> French / English).
+# Uses the free MyMemory service through the server (no key, daily quota).
+# ---------------------------------------------------------------------------
+TRANSLATE_URL = os.environ.get("JISR_TRANSLATE_URL", "https://api.mymemory.translated.net/get")
+TRANSLATE_LANGS = ("ar", "fr", "en")
+_translate_hits = {}
+
+
+@app.post("/api/translate")
+@login_required
+def api_translate():
+    import json as _json
+    import urllib.parse
+    import urllib.request
+    d = request.get_json(silent=True) or {}
+    text = str(d.get("text") or "").strip()[:450]
+    src, dst = d.get("from"), d.get("to")
+    if not text or src not in TRANSLATE_LANGS or dst not in TRANSLATE_LANGS or src == dst:
+        return err("required")
+    uid, now = current_user()["id"], time.time()
+    hits = [t for t in _translate_hits.get(uid, []) if now - t < 60] + [now]
+    _translate_hits[uid] = hits
+    if len(hits) > 30:
+        return err("too_many", 429)
+    url = f"{TRANSLATE_URL}?{urllib.parse.urlencode({'q': text, 'langpair': f'{src}|{dst}'})}"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "minassa-exchange"}),
+                                    timeout=8) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+        out = (data.get("responseData") or {}).get("translatedText") or ""
+        if int(data.get("responseStatus") or 200) != 200 or not out or "MYMEMORY WARNING" in out:
+            return err("translate_failed", 502)
+    except Exception:
+        return err("translate_failed", 502)
+    return jsonify({"ok": True, "text": out})
 
 
 @app.route("/manifest.webmanifest")

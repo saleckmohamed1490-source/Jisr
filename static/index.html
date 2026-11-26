@@ -92,6 +92,7 @@
       <button data-tab="home" class="on"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
       <button data-tab="rates"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4"/><path d="M20 16H6l4 4"/></svg><span>الأسعار</span></button>
       <button data-tab="list" class="admin-only"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg><span>التقارير</span></button>
+      <button data-tab="translate"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>ترجمة</span></button>
       <button data-tab="history"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg><span>السجل</span></button>
     </nav>
 
@@ -339,6 +340,42 @@
 
     </div>
 
+    <!-- Translator: free voice translation Arabic <-> French / English; phrase book for all languages -->
+    <div id="tab-translate" class="hidden">
+      <div class="seg" id="tr-lang" style="margin-bottom:12px">
+        <button type="button" data-lang="fr" class="on">Français</button>
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="wo">Wolof</button>
+        <button type="button" data-lang="ff">Pulaar</button>
+      </div>
+
+      <div class="card" id="tr-voice">
+        <h3>🎤 ترجمة صوتية</h3>
+        <div class="tr-mics">
+          <button type="button" class="mic" data-side="me"><span class="mic-ico">🎤</span><b>أنا أتكلم</b><small>العربية</small></button>
+          <button type="button" class="mic them" data-side="them"><span class="mic-ico">🎤</span><b>الزبون يتكلم</b><small id="tr-them-name">Français</small></button>
+        </div>
+        <div class="hint center" id="tr-status" style="margin:8px 0 12px">اضغط وتكلم، ثم توقف قليلاً</div>
+        <form class="row" id="tr-form" style="gap:8px">
+          <input class="input" id="tr-text" dir="auto" placeholder="أو اكتب جملة بالعربية…" style="flex:1">
+          <button class="btn primary" style="flex:0 0 auto">ترجم</button>
+        </form>
+        <div id="tr-chat"></div>
+      </div>
+
+      <div class="card hidden" id="tr-novoice">
+        <h3>🎤 ترجمة صوتية</h3>
+        <p class="muted" style="margin:0">لا توجد خدمة مجانية تسمع أو تنطق <b id="tr-nov-name">الولوف</b>. استعمل الجمل الجاهزة بالأسفل: اضغط الجملة فتظهر كبيرة ليقرأها الزبون.</p>
+      </div>
+
+      <div class="card">
+        <h3>💬 جمل جاهزة</h3>
+        <p class="hint" style="margin-top:0" id="tr-fill-hint">الأرقام تُملأ من حاسبة الصرف في الرئيسية.</p>
+        <div id="tr-phrases"></div>
+        <p class="hint" id="tr-review" style="margin-bottom:0"></p>
+      </div>
+    </div>
+
     <!-- History: every operation, newest first, grouped by day -->
     <div id="tab-history" class="hidden">
       <div class="seg" id="h-kind" style="margin-bottom:12px">
@@ -426,6 +463,17 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- Phrase shown big for the customer -->
+<div class="tr-show hidden" id="tr-show" role="dialog">
+  <div class="tr-show-lang" id="tr-show-lang"></div>
+  <div class="tr-show-text" id="tr-show-text" dir="auto"></div>
+  <div class="tr-show-ar" id="tr-show-ar"></div>
+  <div class="row" style="gap:10px;max-width:420px;margin:24px auto 0">
+    <button type="button" class="btn ghost" id="tr-show-speak">🔊 نطق</button>
+    <button type="button" class="btn primary" id="tr-show-close">إغلاق</button>
+  </div>
 </div>
 
 <!-- Worker save: a gunman fires toward the phone; Salek jumps in, catches it: "NAR w t3mar 🔥🔥🔥" -->
@@ -705,7 +753,8 @@ function switchTab(name) {
   if (name === "list" && !isAdmin()) name = "home";   // reports are for the admin only
   tab = name;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  ["home", "rates", "list", "history", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  ["home", "rates", "list", "history", "methods", "translate"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
+  if (name === "translate") renderTranslate();
   $("settings-btn").classList.toggle("on", name === "methods");
   if (name === "history") loadHistory();
   if (name === "home") loadHome();
@@ -1485,6 +1534,131 @@ $("trash-list").addEventListener("click", async e => {
 $("trash-empty").addEventListener("click", () => confirmTap($("trash-empty"), async () => {
   await api("/api/trash", { method: "DELETE" }); toast("تم إفراغ السلة"); loadTrash();
 }));
+
+// ---------------------------------------------------------------- translator
+// Voice: the phone listens (speech recognition) and speaks (speech synthesis); text goes through
+// /api/translate (free service). Wolof / Pulaar have no free speech or translation service, so
+// they use the phrase book below (translations written in advance — have a speaker review them).
+const TR = {
+  fr: { name: "Français", speech: "fr-FR", voice: true },
+  en: { name: "English", speech: "en-US", voice: true },
+  wo: { name: "Wolof", ar: "الولوف", voice: false },
+  ff: { name: "Pulaar", ar: "البولار", voice: false },
+};
+let trLang = "fr";
+try { if (TR[localStorage.getItem("jisr_tr_lang")]) trLang = localStorage.getItem("jisr_tr_lang"); } catch (_) {}
+// {mru} {method} {fx} {code} {rate} come from the calculator on the home screen
+const PHRASES = [
+  { ar: "السلام عليكم، مرحباً بك", fr: "Bonjour, bienvenue", en: "Hello, welcome", wo: "Asalaa maalekum, dalal ak jàmm", ff: "Assalaamu aleykum, a jaɓɓaama" },
+  { ar: "كم تريد أن ترسل؟", fr: "Combien voulez-vous envoyer ?", en: "How much do you want to send?", wo: "Ñaata nga bëgg yónnee?", ff: "Hol no foti ko njiɗ-ɗaa neldude?" },
+  { ar: "إلى أي بلد؟", fr: "Vers quel pays ?", en: "To which country?", wo: "Ci ban réew?", ff: "To leydi honde?" },
+  { ar: "سعر اليوم: {rate}", fr: "Le taux du jour : {rate}", en: "Today's rate: {rate}", wo: "Njëg tey: {rate}", ff: "Coggu hande: {rate}", needs: ["rate"] },
+  { ar: "ادفع {mru} أوقية على {method}", fr: "Payez {mru} MRU sur {method}", en: "Pay {mru} MRU via {method}", wo: "Fey {mru} MRU ci {method}", ff: "Yoɓu {mru} MRU e {method}", needs: ["mru", "method"] },
+  { ar: "سيستلم {fx} {code}", fr: "Le bénéficiaire recevra {fx} {code}", en: "The recipient will receive {fx} {code}", wo: "Kiy jot dina jot {fx} {code}", ff: "Jaɓoowo oo heɓat {fx} {code}", needs: ["fx", "code"] },
+  { ar: "ما رقم المستلم؟", fr: "Quel est le numéro du bénéficiaire ?", en: "What is the recipient's number?", wo: "Lan mooy nimero bu kiy jot?", ff: "Ko honde limoore jaɓoowo oo?" },
+  { ar: "ما اسمك الكامل؟", fr: "Quel est votre nom complet ?", en: "What is your full name?", wo: "Naka nga tudd, sa tur bu mat?", ff: "Ko honno inniraa (innde maa timmunde)?" },
+  { ar: "أرسل لي صورة الإيصال", fr: "Envoyez-moi la photo du reçu", en: "Send me a photo of the receipt", wo: "Yónnee ma nataalu reçu bi", ff: "Neldan kam natal resi oo" },
+  { ar: "انتظر قليلاً من فضلك", fr: "Patientez un instant, s'il vous plaît", en: "Please wait a moment", wo: "Muñal tuuti, su la neexee", ff: "Munyu seeɗa, njaafodaa" },
+  { ar: "التحويل يأخذ بضع دقائق", fr: "Le transfert prend quelques minutes", en: "The transfer takes a few minutes", wo: "Yónnee bi dafay yàgg ay simili", ff: "Nelda ndee ina ŋoola hojomaaje seeɗa" },
+  { ar: "تم الإرسال", fr: "C'est envoyé", en: "It has been sent", wo: "Yónnee nanu ko", ff: "Ɗum nelda" },
+  { ar: "شكراً لك، مع السلامة", fr: "Merci, au revoir", en: "Thank you, goodbye", wo: "Jërëjëf, ba beneen yoon", ff: "A jaraama, ndeen yeeso" },
+];
+const LATIN_NAMES = { "بنكيلي": "Bankily", "سداد": "Sedad", "مصريفي": "Masrivi", "كليك": "Click" };
+function trValues(lang = "ar") {
+  const r = calcRate(), v = sellOf(r), m0 = methodById(calcMethod);
+  const m = m0 && { name: lang === "ar" ? m0.name : (LATIN_NAMES[m0.name.trim()] || m0.name) };
+  const rate = !r || !v ? "" : r.unit === "per5000" ? `5000 ${r.code} = ${fmt(v, 2)} MRU`
+    : r.unit === "per100" ? `100 MRU = ${fmt(v, 4)} ${r.code}` : `1 ${r.code} = ${fmt(v, 4)} MRU`;
+  return { mru: numOf($("c-mru").value) > 0 ? fmt(numOf($("c-mru").value)) : "", fx: numOf($("c-fx").value) > 0 ? fmt(numOf($("c-fx").value)) : "",
+           code: r ? r.code : "", method: m ? m.name : "", rate };
+}
+const fillPhrase = (txt, vals) => txt.replace(/\{(\w+)\}/g, (_, k) => vals[k] || "…");
+function renderTranslate() {
+  const L = TR[trLang], vals = trValues(), tvals = trValues(trLang);
+  document.querySelectorAll("#tr-lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === trLang));
+  $("tr-voice").classList.toggle("hidden", !L.voice);
+  $("tr-novoice").classList.toggle("hidden", L.voice);
+  $("tr-nov-name").textContent = L.ar || L.name;
+  $("tr-them-name").textContent = L.name;
+  $("tr-review").textContent = L.voice ? "" : `ترجمات ${L.ar} مكتوبة مسبقاً: يُستحسن أن يراجعها شخص يتكلم ${L.ar}.`;
+  const missing = PHRASES.some(p => (p.needs || []).some(k => !vals[k]));
+  $("tr-fill-hint").classList.toggle("hidden", !missing);
+  $("tr-phrases").innerHTML = PHRASES.map((p, i) => `
+    <button type="button" class="phrase" data-i="${i}">
+      <span class="ph-ar">${esc(fillPhrase(p.ar, vals))}</span>
+      <span class="ph-tr" dir="auto">${esc(fillPhrase(p[trLang], tvals))}</span>
+    </button>`).join("");
+}
+$("tr-lang").addEventListener("click", e => {
+  const b = e.target.closest("button[data-lang]"); if (!b) return;
+  trLang = b.dataset.lang; try { localStorage.setItem("jisr_tr_lang", trLang); } catch (_) {}
+  renderTranslate();
+});
+function speak(text, lang) {
+  try {
+    if (!window.speechSynthesis || !text) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = lang;
+    const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith(lang.slice(0, 2)));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (_) {}
+}
+let shown = null;
+$("tr-phrases").addEventListener("click", e => {
+  const b = e.target.closest(".phrase"); if (!b) return;
+  const p = PHRASES[+b.dataset.i], vals = trValues(), L = TR[trLang];
+  shown = { text: fillPhrase(p[trLang], trValues(trLang)), lang: L.speech };
+  $("tr-show-lang").textContent = L.name;
+  $("tr-show-text").textContent = shown.text;
+  $("tr-show-ar").textContent = fillPhrase(p.ar, vals);
+  $("tr-show-speak").classList.toggle("hidden", !L.voice);
+  $("tr-show").classList.remove("hidden");
+  if (L.voice) speak(shown.text, L.speech);
+});
+$("tr-show-close").addEventListener("click", () => $("tr-show").classList.add("hidden"));
+$("tr-show-speak").addEventListener("click", () => shown && speak(shown.text, shown.lang));
+
+// conversation
+function addBubble(side, original, translated, lang) {
+  const div = document.createElement("div");
+  div.className = "bubble " + side;
+  div.innerHTML = `<div class="b-orig" dir="auto">${esc(original)}</div><div class="b-tr" dir="auto">${esc(translated)}</div>
+    <button type="button" class="b-say" title="نطق">🔊</button>`;
+  div.querySelector(".b-say").addEventListener("click", () => speak(translated, lang));
+  $("tr-chat").prepend(div);
+}
+async function translateAndSay(side, text) {
+  const L = TR[trLang], from = side === "me" ? "ar" : trLang, to = side === "me" ? trLang : "ar";
+  const sayLang = side === "me" ? L.speech : "ar-SA";
+  $("tr-status").textContent = "جاري الترجمة…";
+  try {
+    const r = await api("/api/translate", { method: "POST", body: { text, from, to } });
+    addBubble(side, text, r.text, sayLang);
+    speak(r.text, sayLang);
+    $("tr-status").textContent = "اضغط وتكلم، ثم توقف قليلاً";
+  } catch (ex) { $("tr-status").textContent = ex.message; }
+}
+$("tr-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const t = $("tr-text").value.trim(); if (!t) return;
+  $("tr-text").value = ""; translateAndSay("me", t);
+});
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let listening = null;
+document.querySelectorAll(".mic").forEach(btn => btn.addEventListener("click", () => {
+  if (!SR) { $("tr-status").textContent = "هذا المتصفح لا يدعم الاستماع. اكتب الجملة في الخانة."; return; }
+  if (listening) { listening.stop(); return; }
+  const side = btn.dataset.side, rec = new SR();
+  rec.lang = side === "me" ? "ar-SA" : TR[trLang].speech;
+  rec.interimResults = false; rec.maxAlternatives = 1;
+  rec.onstart = () => { listening = rec; btn.classList.add("on"); $("tr-status").textContent = "🎙️ أستمع…"; };
+  rec.onerror = ev => { $("tr-status").textContent = ev.error === "not-allowed" ? "اسمح للتطبيق باستعمال الميكروفون من إعدادات المتصفح" : "لم أسمع جيداً، حاول مرة أخرى"; };
+  rec.onend = () => { listening = null; btn.classList.remove("on"); };
+  rec.onresult = ev => { const t = ev.results[0][0].transcript; if (t) translateAndSay(side, t); };
+  try { rec.start(); } catch (_) {}
+}));
+if (window.speechSynthesis) speechSynthesis.getVoices();   // load voices early
 
 // ---------------------------------------------------------------- history
 let historyKind = "";
