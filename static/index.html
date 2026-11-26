@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#00704a">
-<title>جسر · دفتر المعاملات</title>
+<title>Rimal Transfer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -15,9 +15,9 @@
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">ج</div>
+      <div class="brand-mark">R</div>
       <div>
-        <div class="brand-name">جسر</div>
+        <div class="brand-name">Rimal Transfer</div>
         <div class="brand-tag">دفتر المعاملات والأرباح</div>
       </div>
     </div>
@@ -590,15 +590,15 @@ const isCfa = r => ["XOF", "XAF"].includes(r.code) || /cfa/i.test(r.name) || /cf
 
 // Texts of the PDF sheet in each language.
 const SHEET = {
-  ar: { rtl: true, brand: "جسر", title: "أسعار الصرف اليوم", cols: ["العملة", "الشراء", "البيع"], mru: "أوقية",
+  ar: { rtl: true, brand: "Rimal Transfer", title: "أسعار الصرف اليوم", cols: ["العملة", "الشراء", "البيع"], mru: "أوقية",
         per100: "لكل 100 أوقية", perUnit: c => `لكل \u20661 ${c}\u2069`, forN: (n, c) => `مقابل \u2066${n} ${c}\u2069`,
-        footer: "الأسعار قابلة للتغيير · جسر", locale: "ar-u-nu-latn", share: "أسعار الصرف" },
-  fr: { rtl: false, brand: "Jisr", title: "Taux de change du jour", cols: ["Devise", "Achat", "Vente"], mru: "MRU",
+        footer: "الأسعار قابلة للتغيير · Rimal Transfer", locale: "ar-u-nu-latn", share: "أسعار الصرف" },
+  fr: { rtl: false, brand: "Rimal Transfer", title: "Taux de change du jour", cols: ["Devise", "Achat", "Vente"], mru: "MRU",
         per100: "pour 100 MRU", perUnit: c => `pour 1 ${c}`, forN: (n, c) => `pour ${n} ${c}`,
-        footer: "Taux susceptibles de changer · Jisr", locale: "fr-FR", share: "Taux de change" },
-  en: { rtl: false, brand: "Jisr", title: "Today's exchange rates", cols: ["Currency", "Buy", "Sell"], mru: "MRU",
+        footer: "Taux susceptibles de changer · Rimal Transfer", locale: "fr-FR", share: "Taux de change" },
+  en: { rtl: false, brand: "Rimal Transfer", title: "Today's exchange rates", cols: ["Currency", "Buy", "Sell"], mru: "MRU",
         per100: "per 100 MRU", perUnit: c => `per 1 ${c}`, forN: (n, c) => `for ${n} ${c}`,
-        footer: "Rates subject to change · Jisr", locale: "en-GB", share: "Exchange rates" },
+        footer: "Rates subject to change · Rimal Transfer", locale: "en-GB", share: "Exchange rates" },
 };
 let pdfLang = "ar";
 try { if (SHEET[localStorage.getItem("jisr_pdf_lang")]) pdfLang = localStorage.getItem("jisr_pdf_lang"); } catch (_) {}
@@ -651,7 +651,9 @@ async function drawRatesSheet(list, lang) {
   ctx.fillStyle = "#00704a"; ctx.fillRect(0, 0, W, HEAD - 60);
   ctx.fillStyle = "#d4a017"; ctx.fillRect(0, HEAD - 60, W, 8);
   ctx.fillStyle = "#ffffff"; ctx.textAlign = START;
-  ctx.font = `800 96px ${FONT}`; ctx.fillText(T.brand, X(W - PAD), 140);
+  let brandSize = 92;
+  do { ctx.font = `800 ${brandSize}px ${FONT}`; } while (ctx.measureText(T.brand).width > W * 0.55 && --brandSize > 50);
+  ctx.fillText(T.brand, X(W - PAD), 140);
   ctx.font = `700 52px ${FONT}`; ctx.fillText(T.title, X(W - PAD), 220);
   const now = new Date();
   const day = now.toLocaleDateString(T.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -711,7 +713,7 @@ $("pdf-rates").addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width, canvas.height], hotfixes: ["px_scaling"] });
     pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, canvas.width, canvas.height);
-    const name = `jisr-rates-${pdfLang}-${localDate()}.pdf`;
+    const name = `rimal-transfer-rates-${pdfLang}-${localDate()}.pdf`;
     const file = new File([pdf.output("blob")], name, { type: "application/pdf" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: SHEET[pdfLang].share }); }
