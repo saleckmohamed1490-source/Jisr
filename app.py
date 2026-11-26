@@ -592,9 +592,10 @@ def logo_file(kind, item_id):
 # Exchange rates board
 #   unit 'per_unit': 1 unit of the currency = X MRU        (e.g. 1 USD = 40.2 MRU)
 #   unit 'per100'  : 100 MRU = X units of the currency     (e.g. 100 MRU = 53 SLE)
+#   unit 'per5000' : 5000 units of the currency = X MRU    (e.g. 5000 XOF = 375 MRU), used for CFA
 # The USD row's buy rate is the default dollar price in the transaction form.
 # ---------------------------------------------------------------------------
-RATE_UNITS = ("per_unit", "per100")
+RATE_UNITS = ("per_unit", "per100", "per5000")
 COST_TYPES = ("usd", "direct")  # usd: bought with dollars ; direct: own buy price
 
 
@@ -661,7 +662,11 @@ def api_rate_delete(rid):
 # Transactions
 # ---------------------------------------------------------------------------
 def fx_to_mru(amount, rate, unit):
-    return amount * 100 / rate if unit == "per100" else amount * rate
+    if unit == "per100":
+        return amount * 100 / rate
+    if unit == "per5000":
+        return amount * rate / 5000
+    return amount * rate
 
 
 def tx_payload(d):

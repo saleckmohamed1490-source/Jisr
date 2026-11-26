@@ -305,6 +305,7 @@
               <select class="input" name="unit">
                 <option value="per_unit">1 من العملة = كم أوقية</option>
                 <option value="per100">100 أوقية = كم من العملة</option>
+                <option value="per5000">5000 من العملة = كم أوقية (CFA)</option>
               </select>
             </div>
           </div>
@@ -620,16 +621,21 @@ $("pin-form").addEventListener("submit", async e => {
 
 // ---------------------------------------------------------------- exchange rates
 let rates = [], editingRate = null;
-const unitHint = r => r.unit === "per100" ? `كم ${r.code || "من العملة"} لكل 100 أوقية` : `كم أوقية لكل 1 ${r.code || "من العملة"}`;
+const unitHint = r => r.unit === "per100" ? `كم ${r.code || "من العملة"} لكل 100 أوقية`
+  : r.unit === "per5000" ? `كم أوقية مقابل 5000 ${r.code || "من العملة"}` : `كم أوقية لكل 1 ${r.code || "من العملة"}`;
 // "1 USD = 40.2 أوقية" or "100 أوقية = 53 SLE"
-const rateText = (r, v) => v ? (r.unit === "per100" ? `${fmt(v, 4)} ${r.code} لكل 100 أوقية` : `${fmt(v, 4)} أوقية لكل 1 ${r.code}`) : "—";
+const rateText = (r, v) => !v ? "—"
+  : r.unit === "per100" ? `${fmt(v, 4)} ${r.code} لكل 100 أوقية`
+  : r.unit === "per5000" ? `${fmt(v, 4)} أوقية مقابل 5000 ${r.code}`
+  : `${fmt(v, 4)} أوقية لكل 1 ${r.code}`;
 
 const isUsdRow = r => r && r.code === "USD";
 // How a currency's cost is computed: 'usd' (bought with dollars) or 'direct' (own buy price).
 const costMode = r => (r && r.mode === "direct" && !isUsdRow(r)) ? "direct" : "usd";
 const sellOf = r => r ? (r.sell_rate || (costMode(r) === "direct" || isUsdRow(r) ? r.buy_rate : null)) : null;
-const fxFromMru = (r, v, m) => r.unit === "per100" ? m * v / 100 : m / v;
-const mruFromFx = (r, v, x) => r.unit === "per100" ? x * 100 / v : x * v;
+// per100: v = currency per 100 MRU ; per5000: v = MRU for 5000 units ; per_unit: v = MRU per 1 unit
+const fxFromMru = (r, v, m) => r.unit === "per100" ? m * v / 100 : r.unit === "per5000" ? m * 5000 / v : m / v;
+const mruFromFx = (r, v, x) => r.unit === "per100" ? x * 100 / v : r.unit === "per5000" ? x * v / 5000 : x * v;
 
 function fillCurSelect(sel, storeKey) {
   let keep = sel.value;
@@ -649,7 +655,7 @@ function renderRateStrip() {
   $("rate-strip").innerHTML = shown.map(r => `
     <button class="rate-chip" data-goto-rates>
       <span>${esc(r.flag)} ${esc(r.name)}</span>
-      <b><bdi>${r.unit === "per100" ? fmt(r.sell_rate || r.buy_rate, 4) : fmt(r.buy_rate || r.sell_rate, 4)}</bdi></b>
+      <b><bdi>${r.unit === "per_unit" ? fmt(r.buy_rate || r.sell_rate, 4) : fmt(r.sell_rate || r.buy_rate, 4)}</bdi></b>
     </button>`).join("");
   $("rate-strip").classList.toggle("hidden", !shown.length);
 }
@@ -699,6 +705,10 @@ function updateRateHints() {
   f.elements.mode.closest(".field").classList.toggle("hidden", code === "USD");
 }
 ["unit", "code", "mode"].forEach(n => $("rate-form").elements[n].addEventListener("input", updateRateHints));
+// New CFA currency: default to "MRU for 5000 XOF"
+$("rate-form").elements.code.addEventListener("input", e => {
+  if (!editingRate && /^(XOF|XAF)$/i.test(e.target.value.trim())) { $("rate-form").elements.unit.value = "per5000"; updateRateHints(); }
+});
 $("add-rate").addEventListener("click", () => openRateForm(null));
 $("rate-cancel").addEventListener("click", () => $("rate-form-card").classList.add("hidden"));
 $("rate-form").addEventListener("submit", async e => {
@@ -783,6 +793,7 @@ function priceParts(r, v, T) {
   if (!v) return null;
   if (isCfa(r)) return { big: `${fmt(mruFromFx(r, v, CFA_AMOUNT), 2)} ${T.mru}`, small: T.forN(CFA_AMOUNT, r.code) };
   // \u2066…\u2069 keeps "1333.33 XOF" in reading order inside Arabic text.
+  if (r.unit === "per5000") return { big: `${fmt(v, 2)} ${T.mru}`, small: T.forN(5000, r.code) };
   return r.unit === "per100"
     ? { big: `\u2066${fmt(v, 4)} ${r.code}\u2069`, small: T.per100 }
     : { big: `${fmt(v, 4)} ${T.mru}`, small: T.perUnit(r.code) };

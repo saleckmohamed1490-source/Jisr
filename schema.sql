@@ -114,3 +114,10 @@ DO $$ BEGIN
     GRANT SELECT, INSERT, UPDATE, DELETE ON jisr.logo_library TO jisr_app;
   END IF;
 END $$;
+
+-- v7: CFA prices are written as "MRU for 5000 XOF" (unit per5000). Converts CFA rates still in per100.
+UPDATE jisr.rates
+SET unit = 'per5000',
+    buy_rate  = CASE WHEN buy_rate  > 0 THEN round((500000 / buy_rate)::numeric, 4)  END,
+    sell_rate = CASE WHEN sell_rate > 0 THEN round((500000 / sell_rate)::numeric, 4) END
+WHERE unit = 'per100' AND (code IN ('XOF', 'XAF') OR name ILIKE '%cfa%');
