@@ -500,7 +500,8 @@ async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden"); $("settings-btn").classList.remove("hidden");
   [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
   resetForm(); resetCalc();
-  switchTab("home");
+  // /admin opens on the settings page (apps, payment methods, trash, account)
+  switchTab(location.pathname.replace(/\/+$/, "") === "/admin" ? "methods" : "home");
 }
 
 // ---------------------------------------------------------------- tabs

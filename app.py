@@ -943,6 +943,7 @@ def headers(resp):
 
 
 @app.route("/")
+@app.route("/admin")          # same app; opens straight on the settings / admin page
 def index():
     return send_from_directory(STATIC_DIR, "index.html")
 
