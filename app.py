@@ -17,6 +17,7 @@ valued at that buy price:
 import csv
 import io
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -80,6 +81,9 @@ MESSAGES = {
     "already_setup": "تم إنشاء الحساب مسبقاً",
     "password_short": "كلمة المرور قصيرة (٨ أحرف على الأقل)",
     "password_mismatch": "كلمتا المرور غير متطابقتين",
+    "bad_pin": "الرمز يجب أن يكون ٤ أرقام",
+    "pin_mismatch": "الرمزان غير متطابقين",
+    "wrong_current": "الرمز أو كلمة المرور الحالية غير صحيحة",
     "required": "املأ الحقول المطلوبة",
     "bad_rate": "أدخل سعر الدولار",
     "bad_usd": "أدخل كم كلّف من دولار",
@@ -291,10 +295,33 @@ def start_session(username):
     session["user"] = username
 
 
+# Sign-in is a username (or phone number) + 4-digit PIN. Accounts created before PINs
+# keep their password until a PIN is set (settings: auth_type = "pin").
+PIN_RE = re.compile(r"^\d{4}$")
+LOCK_AFTER = 5            # failed attempts before the sign-in is locked
+LOCK_BASE_MIN = 15        # first lock length; doubles with each further lock, up to a day
+
+
+def norm_pin(value):
+    digits = str(value or "").strip()
+    return digits.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
+
+
+def auth_type():
+    return "pin" if get_setting("auth_type") == "pin" else "password"
+
+
+def lock_remaining_min():
+    until = num(get_setting("login_locked_until")) or 0
+    left = until - time.time()
+    return int(left // 60) + 1 if left > 0 else 0
+
+
 @app.get("/api/state")
 def api_state():
     has_admin = get_db().execute("SELECT 1 FROM admin").fetchone() is not None
-    return jsonify({"setup_needed": not has_admin, "logged_in": bool(session.get("admin"))})
+    return jsonify({"setup_needed": not has_admin, "logged_in": bool(session.get("admin")),
+                    "auth_type": auth_type() if has_admin else "pin"})
 
 
 @app.post("/api/setup")
@@ -303,17 +330,18 @@ def api_setup():
         return err("unauthorized", 403)
     d = request.get_json(silent=True) or {}
     user = str(d.get("username") or "").strip()[:50]
-    pw = str(d.get("password") or "")
-    if not user or not pw:
+    pin = norm_pin(d.get("pin"))
+    if not user or not pin:
         return err("required")
-    if len(pw) < 8:
-        return err("password_short")
-    if pw != d.get("confirm_password"):
-        return err("password_mismatch")
+    if not PIN_RE.match(pin):
+        return err("bad_pin")
+    if pin != norm_pin(d.get("confirm_pin")):
+        return err("pin_mismatch")
     db = get_db()
     try:
         db.execute("INSERT INTO admin (id, username, password_hash, created_at) VALUES (1, ?, ?, ?)",
-                   (user, bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode(), now_local()))
+                   (user, bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode(), now_local()))
+        set_setting(db, "auth_type", "pin")
         db.commit()
     except IntegrityErrors:
         return err("already_setup", 409)
@@ -327,14 +355,55 @@ def api_login():
         return err("unauthorized", 403)
     if too_many_logins():
         return err("too_many", 429)
+    left = lock_remaining_min()
+    if left:
+        return jsonify({"ok": False, "error": "locked", "message": f"محاولات خاطئة كثيرة، حاول بعد {left} دقيقة"}), 429
     d = request.get_json(silent=True) or {}
-    user = str(d.get("username") or "").strip()
-    pw = str(d.get("password") or "")
-    row = get_db().execute("SELECT * FROM admin WHERE id = 1").fetchone()
-    if not row or row["username"] != user or not bcrypt.checkpw(pw.encode(), row["password_hash"].encode()):
-        return err("login_failed", 401)
+    user = norm_pin(d.get("username"))      # also normalises Arabic digits in a phone-number username
+    secret = norm_pin(d.get("pin")) if d.get("pin") not in (None, "") else str(d.get("password") or "")
+    db = get_db()
+    row = db.execute("SELECT * FROM admin WHERE id = 1").fetchone()
+    if not row or row["username"] != user or not bcrypt.checkpw(secret.encode(), row["password_hash"].encode()):
+        fails = int(num(get_setting("login_fail_count")) or 0) + 1
+        set_setting(db, "login_fail_count", fails)
+        if fails % LOCK_AFTER == 0:   # lock, longer each time
+            minutes = min(LOCK_BASE_MIN * 2 ** (fails // LOCK_AFTER - 1), 24 * 60)
+            set_setting(db, "login_locked_until", time.time() + minutes * 60)
+        db.commit()
+        remaining = LOCK_AFTER - fails % LOCK_AFTER
+        if remaining == LOCK_AFTER:   # this attempt triggered a lock
+            return jsonify({"ok": False, "error": "locked",
+                            "message": f"محاولات خاطئة كثيرة، حاول بعد {lock_remaining_min()} دقيقة"}), 429
+        wrong = "اسم المستخدم أو الرمز غير صحيح" if auth_type() == "pin" else MESSAGES["login_failed"]
+        msg = wrong + (f" (بقيت {remaining} محاولات)" if remaining > 1 else " (بقيت محاولة واحدة)")
+        return jsonify({"ok": False, "error": "login_failed", "message": msg}), 401
+    set_setting(db, "login_fail_count", 0)
+    set_setting(db, "login_locked_until", 0)
+    db.commit()
     start_session(user)
     return jsonify({"ok": True})
+
+
+@app.post("/api/pin")
+@login_required
+def api_set_pin():
+    """Set or change the 4-digit PIN; needs the current PIN or password."""
+    d = request.get_json(silent=True) or {}
+    current = norm_pin(d.get("current")) if auth_type() == "pin" else str(d.get("current") or "")
+    pin, confirm = norm_pin(d.get("pin")), norm_pin(d.get("confirm_pin"))
+    if not PIN_RE.match(pin):
+        return err("bad_pin")
+    if pin != confirm:
+        return err("pin_mismatch")
+    db = get_db()
+    row = db.execute("SELECT password_hash FROM admin WHERE id = 1").fetchone()
+    if not row or not bcrypt.checkpw(current.encode(), row["password_hash"].encode()):
+        return err("wrong_current", 403)
+    db.execute("UPDATE admin SET password_hash = ? WHERE id = 1",
+               (bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode(),))
+    set_setting(db, "auth_type", "pin")
+    db.commit()
+    return jsonify({"ok": True, "auth_type": "pin"})
 
 
 @app.post("/api/logout")
@@ -617,7 +686,8 @@ def api_settings():
     usd = get_db().execute("SELECT buy_rate FROM rates WHERE code = 'USD' AND buy_rate IS NOT NULL "
                            "ORDER BY id LIMIT 1").fetchone()
     return jsonify({"usd_rate": usd["buy_rate"] if usd else num(get_setting("last_usd_rate")),
-                    "last_method_id": num(get_setting("last_method_id"))})
+                    "last_method_id": num(get_setting("last_method_id")),
+                    "auth_type": auth_type()})
 
 
 @app.post("/api/transactions")

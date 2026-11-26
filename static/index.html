@@ -35,17 +35,38 @@
       <div class="auth-name">MINASSA EXCHANGE</div>
       <div class="muted">دفتر المعاملات والأرباح</div>
     </div>
-    <div class="card">
-      <h2 id="auth-title">تسجيل الدخول</h2>
-      <p class="muted small hidden" id="setup-hint">أول مرة: أنشئ اسم مستخدم وكلمة مرور لحماية دفترك.</p>
-      <form id="auth-form" novalidate>
-        <div class="field"><label>اسم المستخدم</label><input class="input" id="a-user" autocomplete="username"></div>
-        <div class="field"><label>كلمة المرور</label><input class="input" id="a-pass" type="password" autocomplete="current-password"></div>
-        <div class="field hidden" id="confirm-field"><label>تأكيد كلمة المرور</label><input class="input" id="a-pass2" type="password" autocomplete="new-password"></div>
-        <div class="alert error hidden" id="auth-err"></div>
-        <button class="btn primary block" id="auth-btn">دخول</button>
-      </form>
-    </div>
+    <form id="auth-form" class="login" novalidate>
+      <p class="muted small center hidden" id="setup-hint">أول مرة: اختر اسم مستخدم أو رقم هاتف، ورمزاً من ٤ أرقام.</p>
+      <div class="lfield">
+        <label for="a-user">اسم المستخدم أو رقم الهاتف</label>
+        <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3.4"/><path d="M5.6 19c1.4-2.6 3.7-3.9 6.4-3.9s5 1.3 6.4 3.9"/></svg><input class="line-input" id="a-user" autocomplete="username" dir="auto"></div>
+      </div>
+      <div class="lfield" id="pin-field">
+        <label for="a-pin">الرمز السري PIN</label>
+        <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/><circle cx="12" cy="15.4" r="1.3"/><path d="M12 16.7v1.6"/></svg>
+            <label class="pin" for="a-pin">
+              <input id="a-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="PIN">
+              <span></span><span></span><span></span><span></span>
+            </label>
+        </div>
+      </div>
+      <div class="lfield hidden" id="pin2-field">
+        <label for="a-pin2">تأكيد الرمز</label>
+        <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/><circle cx="12" cy="15.4" r="1.3"/><path d="M12 16.7v1.6"/></svg>
+            <label class="pin" for="a-pin2">
+              <input id="a-pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="PIN">
+              <span></span><span></span><span></span><span></span>
+            </label>
+        </div>
+      </div>
+      <div class="lfield hidden" id="pass-field">
+        <label for="a-pass">كلمة المرور</label>
+        <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/><circle cx="12" cy="15.4" r="1.3"/><path d="M12 16.7v1.6"/></svg><input class="line-input" id="a-pass" type="password" autocomplete="current-password"></div>
+        <div class="hint">حسابك ما زال بكلمة مرور. بعد الدخول عيّن رمز PIN من تبويب التطبيقات ← الحساب.</div>
+      </div>
+      <div class="alert error hidden" id="auth-err"></div>
+      <button class="btn primary block" id="auth-btn">دخول</button>
+    </form>
   </section>
 
   <!-- ============ App ============ -->
@@ -304,6 +325,23 @@
       <div class="list" id="methods-list"></div>
       <button class="btn ghost block" data-add="methods" style="margin-top:12px">+ إضافة طريقة دفع</button>
       <input type="file" id="logo-file" accept="image/*" class="hidden">
+
+      <div class="card" style="margin-top:24px" id="account-card">
+        <h3>الحساب: رمز الدخول PIN</h3>
+        <p class="muted small" id="pin-note"></p>
+        <form id="pin-form" novalidate>
+          <div class="field"><label for="p-current" id="p-current-label">الرمز الحالي</label>
+            <input class="input ltr" id="p-current" type="password" autocomplete="current-password"></div>
+          <div class="two">
+            <div class="field"><label for="p-new">الرمز الجديد (٤ أرقام)</label>
+              <input class="input ltr" id="p-new" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div>
+            <div class="field"><label for="p-new2">تأكيد الرمز</label>
+              <input class="input ltr" id="p-new2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div>
+          </div>
+          <div class="alert error hidden" id="pin-err"></div>
+          <button class="btn primary block">حفظ الرمز</button>
+        </form>
+      </div>
     </div>
   </section>
 </div>
@@ -359,28 +397,63 @@ function confirmTap(btn, fn) {
 }
 
 // ---------------------------------------------------------------- auth
-let authMode = "login";
+let authMode = "login", authType = "pin";
+// 4-box PIN inputs: one real input, four visual slots.
+function setupPin(id) {
+  const input = $(id), slots = input.parentElement.querySelectorAll("span");
+  const paint = () => {
+    const v = input.value;
+    slots.forEach((sl, i) => {
+      sl.classList.toggle("filled", i < v.length);
+      sl.classList.toggle("active", document.activeElement === input && i === Math.min(v.length, 3));
+    });
+  };
+  input.addEventListener("input", () => {
+    input.value = normDigits(input.value).replace(/\D/g, "").slice(0, 4);
+    paint();
+    // move on / submit once 4 digits are in
+    if (input.value.length === 4) {
+      if (id === "a-pin" && authMode === "setup") $("a-pin2").focus();
+      else if ($("a-user").value.trim()) $("auth-form").requestSubmit();
+    }
+  });
+  ["focus", "blur"].forEach(ev => input.addEventListener(ev, paint));
+  input.paint = paint;
+}
+setupPin("a-pin"); setupPin("a-pin2");
+function clearPins() { ["a-pin", "a-pin2"].forEach(id => { $(id).value = ""; $(id).paint(); }); }
+
 async function boot() {
   const s = await (await fetch("/api/state", { credentials: "same-origin" })).json();
   if (s.logged_in) return enterApp();
   authMode = s.setup_needed ? "setup" : "login";
-  const setup = authMode === "setup";
-  $("auth-title").textContent = setup ? "إنشاء حسابك" : "تسجيل الدخول";
+  authType = s.auth_type || "pin";
+  const setup = authMode === "setup", usePin = setup || authType === "pin";
   $("auth-btn").textContent = setup ? "إنشاء الحساب" : "دخول";
   $("setup-hint").classList.toggle("hidden", !setup);
-  $("confirm-field").classList.toggle("hidden", !setup);
-  $("a-pass").autocomplete = setup ? "new-password" : "current-password";
+  $("pin2-field").classList.toggle("hidden", !setup);
+  $("pin-field").classList.toggle("hidden", !usePin);
+  $("pass-field").classList.toggle("hidden", usePin);
   $("auth").classList.remove("hidden"); $("app").classList.add("hidden"); $("logout").classList.add("hidden");
+  clearPins();
+  setTimeout(() => ($("a-user").value ? (usePin ? $("a-pin") : $("a-pass")) : $("a-user")).focus(), 50);
 }
 $("auth-form").addEventListener("submit", async e => {
   e.preventDefault();
   $("auth-err").classList.add("hidden");
+  const usePin = authMode === "setup" || authType === "pin";
+  const body = { username: normDigits($("a-user").value.trim()) };
+  if (usePin) { body.pin = $("a-pin").value; body.confirm_pin = $("a-pin2").value; }
+  else body.password = $("a-pass").value;
+  const btn = $("auth-btn"); btn.disabled = true;
   try {
-    await api(authMode === "setup" ? "/api/setup" : "/api/login", { method: "POST",
-      body: { username: $("a-user").value.trim(), password: $("a-pass").value, confirm_password: $("a-pass2").value } });
-    $("a-pass").value = $("a-pass2").value = "";
+    await api(authMode === "setup" ? "/api/setup" : "/api/login", { method: "POST", body });
+    $("a-pass").value = ""; clearPins();
     enterApp();
-  } catch (ex) { $("auth-err").textContent = ex.message; $("auth-err").classList.remove("hidden"); }
+  } catch (ex) {
+    $("auth-err").textContent = ex.message; $("auth-err").classList.remove("hidden");
+    clearPins(); if (usePin) $("a-pin").focus();
+  } finally { btn.disabled = false; }
 });
 $("logout").addEventListener("click", async () => { await api("/api/logout", { method: "POST" }); boot(); });
 
@@ -400,7 +473,7 @@ function switchTab(name) {
   ["home", "rates", "list", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
   if (name === "home") loadHome();
   if (name === "list") loadList();
-  if (name === "methods") { renderList("apps"); renderList("methods"); }
+  if (name === "methods") { renderList("apps"); renderList("methods"); renderAccount(); }
   if (name === "rates") renderRates();
   window.scrollTo({ top: 0 });
 }
@@ -510,6 +583,26 @@ $("logo-file").addEventListener("change", async () => {
   const fd = new FormData(); fd.append("logo", f);
   try { await api(`/api/${logoTarget.kind}/${logoTarget.id}/logo`, { method: "POST", body: fd }); toast("تم رفع الشعار"); await refreshLists(); }
   catch (ex) { toast(ex.message); }
+});
+
+// ---------------------------------------------------------------- account (PIN)
+function renderAccount() {
+  const pin = settings.auth_type === "pin";
+  $("pin-note").textContent = pin ? "غيّر رمز الدخول المكوّن من ٤ أرقام." : "حسابك يدخل الآن بكلمة مرور. عيّن رمزاً من ٤ أرقام لتستعمل صفحة الدخول الجديدة.";
+  $("p-current-label").textContent = pin ? "الرمز الحالي" : "كلمة المرور الحالية";
+  $("p-current").inputMode = pin ? "numeric" : "text";
+  ["p-current", "p-new", "p-new2"].forEach(id => $(id).value = "");
+  $("pin-err").classList.add("hidden");
+}
+$("pin-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("pin-err").classList.add("hidden");
+  try {
+    await api("/api/pin", { method: "POST", body: {
+      current: settings.auth_type === "pin" ? normDigits($("p-current").value) : $("p-current").value,
+      pin: normDigits($("p-new").value), confirm_pin: normDigits($("p-new2").value) } });
+    settings.auth_type = "pin"; renderAccount(); toast("تم حفظ الرمز");
+  } catch (ex) { $("pin-err").textContent = ex.message; $("pin-err").classList.remove("hidden"); }
 });
 
 // ---------------------------------------------------------------- exchange rates
