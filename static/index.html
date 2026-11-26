@@ -394,6 +394,14 @@
         <div id="trash-list"></div>
       </div>
 
+      <div class="card" style="margin-top:24px">
+        <label class="check" style="justify-content:space-between">
+          <span>🔊 صوت الطلقات في شاشة الاحتفال</span>
+          <input type="checkbox" id="party-sound">
+        </label>
+        <button type="button" class="btn ghost block" id="party-test" style="margin-top:12px">جرّب شاشة الاحتفال 🔥</button>
+      </div>
+
       <div class="card" style="margin-top:24px" id="account-card">
         <h3>الحساب: رمز الدخول PIN</h3>
         <p class="muted small" id="pin-note"></p>
@@ -414,6 +422,42 @@
   </section>
 </div>
 
+<!-- Celebration shown after saving an operation -->
+<div class="party hidden" id="party" role="dialog" aria-label="NAR W T3MAR">
+  <div class="party-stage">
+    <svg class="shooter" viewBox="0 0 220 220" aria-hidden="true">
+      <g class="bullets">
+        <rect class="bullet b1" x="150" y="40" width="16" height="6" rx="3"/>
+        <rect class="bullet b2" x="150" y="40" width="16" height="6" rx="3"/>
+        <rect class="bullet b3" x="150" y="40" width="16" height="6" rx="3"/>
+        <rect class="bullet b4" x="150" y="40" width="16" height="6" rx="3"/>
+      </g>
+      <!-- body -->
+      <g class="figure">
+        <circle cx="70" cy="70" r="17" class="skin"/>
+        <path d="M52 66c2-14 30-18 36-2l2 6H50z" class="hat"/>
+        <rect x="44" y="58" width="52" height="7" rx="3" class="hat"/>
+        <path d="M70 88c-16 0-26 12-26 30v34h52v-34c0-18-10-30-26-30z" class="shirt"/>
+        <path d="M50 152l-6 46h16l10-38 10 38h16l-6-46z" class="pants"/>
+        <rect x="40" y="194" width="22" height="8" rx="4" class="boot"/>
+        <rect x="78" y="194" width="22" height="8" rx="4" class="boot"/>
+        <!-- firing arm, raised -->
+        <g class="arm">
+          <path d="M82 100l42-34" class="sleeve"/>
+          <g transform="rotate(-38 128 62)">
+            <rect x="118" y="56" width="34" height="10" rx="2" class="gun"/>
+            <rect x="122" y="62" width="9" height="16" rx="2" class="gun"/>
+          </g>
+          <polygon class="flash" points="156,40 170,30 166,42 182,40 168,48 176,60 162,52 158,64 154,50 142,54 152,44 146,32"/>
+        </g>
+        <path d="M58 100c-8 10-12 22-10 34" class="sleeve"/>
+      </g>
+    </svg>
+    <div class="party-text">NAR W T3MAR 🔥</div>
+    <div class="party-sub" id="party-sub"></div>
+  </div>
+  <div class="party-fire" id="party-fire"></div>
+</div>
 <script>
 // ---------------------------------------------------------------- helpers
 const $ = id => document.getElementById(id);
@@ -726,6 +770,11 @@ $("user-form").addEventListener("submit", async e => {
     toast("تم إنشاء الحساب"); loadUsers();
   } catch (ex) { $("user-err").textContent = ex.message; $("user-err").classList.remove("hidden"); }
 });
+
+// ---------------------------------------------------------------- celebration settings
+$("party-sound").checked = soundOn();
+$("party-sound").addEventListener("change", e => { try { localStorage.setItem("jisr_party_sound", e.target.checked ? "on" : "off"); } catch (_) {} });
+$("party-test").addEventListener("click", () => celebrate(isAdmin() ? 25 : null));
 
 // ---------------------------------------------------------------- account (PIN)
 function renderAccount() {
@@ -1127,7 +1176,7 @@ $("calc-save").addEventListener("click", async () => {
   const btn = $("calc-save"); btn.disabled = true;
   try {
     if (editingCalc) { await api(`/api/transactions/${editingCalc}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
-    else { const res = await api("/api/transactions", { method: "POST", body }); toast(`تم الحفظ · الربح ${signed(res.profit)} أوقية`); }
+    else { const res = await api("/api/transactions", { method: "POST", body }); celebrate(res.profit); }
     resetCalc(); loadHome();
   } catch (ex) { fail(ex.message); }
   finally { btn.disabled = false; }
@@ -1210,7 +1259,7 @@ $("tx-form").addEventListener("submit", async e => {
     if (editingTx) { await api(`/api/transactions/${editingTx}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
     else {
       const res = await api("/api/transactions", { method: "POST", body });
-      toast(`تم الحفظ · الربح ${signed(res.profit)} أوقية`);
+      celebrate(res.profit);
       settings = await api("/api/settings");
     }
     resetForm(); loadHome();
@@ -1449,6 +1498,37 @@ async function loadList() {
     try { localStorage.setItem("jisr_install_tip", "x"); } catch (_) {}
   });
 })();
+
+// ---------------------------------------------------------------- celebration ("NAR W T3MAR 🔥")
+let partyTimer;
+function soundOn() { try { return localStorage.getItem("jisr_party_sound") !== "off"; } catch (_) { return true; } }
+function shotSounds(count, gap) {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = celebrate.ctx || (celebrate.ctx = new AC());
+    if (ctx.state === "suspended") ctx.resume();
+    const len = Math.floor(ctx.sampleRate * 0.18), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    for (let k = 0; k < count; k++) {
+      const t = ctx.currentTime + k * gap, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = buf; f.type = "lowpass"; f.frequency.value = 1800;
+      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      src.connect(f).connect(g).connect(ctx.destination); src.start(t);
+    }
+  } catch (_) {}
+}
+function celebrate(profit) {
+  const el = $("party");
+  $("party-sub").textContent = isAdmin() && profit != null ? `الربح ${signed(profit)} أوقية` : "تم حفظ العملية ✅";
+  $("party-fire").innerHTML = Array.from({ length: 16 }, () =>
+    `<span style="left:${Math.random() * 100}%;animation-delay:${(Math.random() * 1.2).toFixed(2)}s;font-size:${22 + Math.random() * 26}px">🔥</span>`).join("");
+  el.classList.remove("hidden", "go"); void el.offsetWidth; el.classList.add("go");
+  if (soundOn()) shotSounds(4, 0.35);
+  if (navigator.vibrate) navigator.vibrate([40, 310, 40, 310, 40, 310, 40]);
+  clearTimeout(partyTimer); partyTimer = setTimeout(closeParty, 3000);
+}
+function closeParty() { $("party").classList.add("hidden"); $("party").classList.remove("go"); }
+$("party").addEventListener("click", closeParty);
 
 // ---------------------------------------------------------------- start
 setRange("month");

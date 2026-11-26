@@ -513,3 +513,61 @@ select.input { appearance: none; -webkit-appearance: none;
 /* ---- Roles: workers don't see admin-only parts ---- */
 body[data-role="worker"] .admin-only { display: none !important; }
 body[data-role="worker"] .tabs { grid-template-columns: repeat(3, 1fr); }
+
+/* =====================================================================
+   Celebration overlay: "NAR W T3MAR 🔥" with a cartoon shooter firing in the air
+   ===================================================================== */
+.party {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  background: radial-gradient(70% 60% at 50% 40%, rgba(255,120,20,.35), rgba(10,10,10,.96) 70%);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.party.go { animation: partyIn .25s ease-out, shake .35s linear .05s 4; }
+@keyframes partyIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); } 15% { transform: translate(-6px, 3px); }
+  30% { transform: translate(5px, -4px); } 45% { transform: translate(-3px, 2px); } 60% { transform: none; }
+}
+.party-stage { text-align: center; padding: 0 16px; transform: translateY(-4vh); }
+.shooter { width: min(62vw, 280px); height: auto; overflow: visible; filter: drop-shadow(0 10px 30px rgba(0,0,0,.6)); }
+.shooter .skin { fill: #e9b98c; }
+.shooter .hat { fill: #d4af37; }
+.shooter .shirt { fill: #1a1a1a; stroke: #d4af37; stroke-width: 3; }
+.shooter .pants { fill: #2b2b2b; }
+.shooter .boot { fill: #d4af37; }
+.shooter .sleeve { fill: none; stroke: #1a1a1a; stroke-width: 14; stroke-linecap: round; }
+.shooter .gun { fill: #cfcfcf; stroke: #111; stroke-width: 2; }
+.shooter .arm { transform-origin: 82px 100px; animation: recoil .35s ease-out infinite; }
+@keyframes recoil { 0% { transform: rotate(-7deg); } 25% { transform: rotate(0); } 100% { transform: rotate(0); } }
+.shooter .flash { fill: #ffd54a; stroke: #ff7a00; stroke-width: 2; transform-origin: 160px 46px; animation: flash .35s steps(1) infinite; }
+@keyframes flash { 0% { opacity: 1; transform: scale(1.15); } 30% { opacity: 0; transform: scale(.6); } 100% { opacity: 0; } }
+.shooter .bullet { fill: #f1d77a; transform-box: fill-box; opacity: 0; animation: fly 1.4s linear infinite; }
+.shooter .b1 { animation-delay: 0s; } .shooter .b2 { animation-delay: .35s; }
+.shooter .b3 { animation-delay: .7s; } .shooter .b4 { animation-delay: 1.05s; }
+@keyframes fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(-38deg); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(260px, -200px) rotate(-38deg); }
+}
+.party-text {
+  margin-top: 8px; font-size: clamp(38px, 12vw, 76px); font-weight: 900; letter-spacing: 1px; line-height: 1.1;
+  direction: ltr; font-family: "Tajawal", system-ui, sans-serif;
+  background: linear-gradient(90deg, #fff3a0, #ffb300, #ff5a00, #ffb300, #fff3a0); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 18px rgba(255,120,0,.7));
+  animation: pop .5s cubic-bezier(.2,1.6,.4,1) both, burn 1s linear infinite;
+}
+@keyframes pop { from { transform: scale(.3) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes burn { to { background-position: -200% 0; } }
+.party-sub { margin-top: 10px; font-size: 20px; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.party-fire { position: absolute; inset: auto 0 0 0; height: 100%; pointer-events: none; }
+.party-fire span { position: absolute; bottom: -40px; animation: rise 2.2s ease-in infinite; }
+@keyframes rise {
+  0% { transform: translateY(0) scale(.8); opacity: 0; } 15% { opacity: 1; }
+  100% { transform: translateY(-85vh) scale(1.3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party.go, .shooter .arm, .shooter .bullet, .party-fire span, .party-text { animation: none; }
+  .shooter .bullet { opacity: 1; } .shooter .flash { animation: none; opacity: 1; }
+}
+.party-text { font-size: clamp(28px, 9vw, 64px); white-space: nowrap; }
