@@ -576,8 +576,15 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 // Big number + small unit line for one price cell.
+// CFA currencies (XOF / XAF, or "CFA" in the name) are printed as "how many MRU for 5000 CFA".
+const CFA_AMOUNT = 5000;
+const isCfa = r => ["XOF", "XAF"].includes(r.code) || /cfa/i.test(r.name) || /cfa/i.test(r.code);
 function priceParts(r, v) {
   if (!v) return null;
+  if (isCfa(r)) {
+    const mru = mruFromFx(r, v, CFA_AMOUNT);
+    return { big: `${fmt(mru, 2)} أوقية`, small: `مقابل \u2066${CFA_AMOUNT} ${r.code}\u2069` };
+  }
   // \u2066…\u2069 keeps "1333.33 XOF" / "1 USD" in reading order inside Arabic text.
   return r.unit === "per100"
     ? { big: `\u2066${fmt(v, 4)} ${r.code}\u2069`, small: "لكل 100 أوقية" }
