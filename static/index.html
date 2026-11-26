@@ -632,7 +632,8 @@ async function drawRatesSheet(list) {
     ctx.fillText(r.name, x, mid - 2);
     ctx.font = `500 30px ${FONT}`; ctx.fillStyle = "#5b6b62"; ctx.fillText(r.code, x, mid + 44);
     // prices
-    const buy = (costMode(r) === "direct" || isUsdRow(r)) ? priceParts(r, r.buy_rate) : null;
+    // CFA: only the sell price is printed. Dollar-route currencies have no buy price of their own.
+    const buy = (!isCfa(r) && (costMode(r) === "direct" || isUsdRow(r))) ? priceParts(r, r.buy_rate) : null;
     const sell = priceParts(r, r.sell_rate);
     for (const [cx, part, color] of [[colBuy, buy, "#13201a"], [colSell, sell, "#00704a"]]) {
       ctx.textAlign = "center";
@@ -651,7 +652,7 @@ async function drawRatesSheet(list) {
   return c;
 }
 $("pdf-rates").addEventListener("click", async () => {
-  const list = rates.filter(r => r.sell_rate || ((costMode(r) === "direct" || isUsdRow(r)) && r.buy_rate));
+  const list = rates.filter(r => r.sell_rate || (!isCfa(r) && (costMode(r) === "direct" || isUsdRow(r)) && r.buy_rate));
   if (!list.length) { toast("ضع الأسعار أولاً"); return; }
   const btn = $("pdf-rates"); btn.disabled = true; const label = btn.textContent; btn.textContent = "جاري التحضير...";
   try {
