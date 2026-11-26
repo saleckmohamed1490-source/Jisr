@@ -400,11 +400,11 @@
 
       <div class="card" style="margin-top:24px">
         <label class="check" style="justify-content:space-between">
-          <span>🔊 صوت الطلقات في شاشة الاحتفال</span>
+          <span>🔊 صوت الطلق الناري عند الحفظ</span>
           <input type="checkbox" id="party-sound">
         </label>
         <button type="button" class="btn ghost block" id="party-test" style="margin-top:12px">جرّب شاشة الاحتفال 🔥</button>
-        <button type="button" class="btn ghost block admin-only" id="shot-test" style="margin-top:8px">جرّب ما يراه العامل عند الحفظ 🔫</button>
+        <button type="button" class="btn ghost block" id="shot-test" style="margin-top:8px">جرّب مشهد الحفظ 🔫</button>
         <button type="button" class="btn ghost block admin-only" id="weylk-test" style="margin-top:8px">جرّب ما يراه العامل عند الحذف ⚠️</button>
       </div>
 
@@ -1678,7 +1678,8 @@ $("party").addEventListener("click", closeParty);
 
 // ---------------------------------------------------------------- worker save scene: shot toward the phone
 let shotTimer;
-function saveScene(profit) { isAdmin() ? celebrate(profit) : playShot(profit); }
+// Everyone (admin and workers) gets the shot scene with the gunshot when saving
+function saveScene(profit) { playShot(profit); }
 function playShot(profit) {
   const el = $("shot");
   $("shot-sub").innerHTML = canSeeProfit() && profit != null
