@@ -156,7 +156,8 @@ def init_db():
         for col, ddl in (("to_currency", "TEXT NOT NULL DEFAULT ''"), ("to_amount", "REAL"),
                          ("cost_type", "TEXT NOT NULL DEFAULT 'usd'"), ("cur_buy_rate", "REAL"),
                          ("rate_unit", "TEXT NOT NULL DEFAULT 'per_unit'"), ("app_id", "INTEGER"),
-                         ("app_name", "TEXT NOT NULL DEFAULT ''"), ("package", "TEXT NOT NULL DEFAULT ''")):
+                         ("app_name", "TEXT NOT NULL DEFAULT ''"), ("package", "TEXT NOT NULL DEFAULT ''"),
+                         ("deleted_at", "TEXT")):
             if col not in cols:
                 db.execute(f"ALTER TABLE transactions ADD COLUMN {col} {ddl}")
     rate_cols = [r[1] for r in db.execute("PRAGMA table_info(rates)")]
@@ -205,6 +206,7 @@ def init_db():
         app_id INTEGER,
         app_name TEXT NOT NULL DEFAULT '',
         package TEXT NOT NULL DEFAULT '',
+        deleted_at TEXT,                 -- set when moved to the trash
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
@@ -780,8 +782,44 @@ def api_tx_update(tid):
 @app.delete("/api/transactions/<int:tid>")
 @login_required
 def api_tx_delete(tid):
+    """Deleting moves the operation to the trash; it can be restored or removed for good."""
     db = get_db()
-    db.execute("DELETE FROM transactions WHERE id = ?", (tid,))
+    db.execute("UPDATE transactions SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", (now_local(), tid))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.get("/api/trash")
+@login_required
+def api_trash():
+    rows = get_db().execute("SELECT * FROM transactions WHERE deleted_at IS NOT NULL "
+                            "ORDER BY deleted_at DESC, id DESC LIMIT 1000").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/api/trash/<int:tid>/restore")
+@login_required
+def api_trash_restore(tid):
+    db = get_db()
+    cur = db.execute("UPDATE transactions SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL", (tid,))
+    db.commit()
+    return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
+
+
+@app.delete("/api/trash/<int:tid>")
+@login_required
+def api_trash_purge(tid):
+    db = get_db()
+    db.execute("DELETE FROM transactions WHERE id = ? AND deleted_at IS NOT NULL", (tid,))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/trash")
+@login_required
+def api_trash_empty():
+    db = get_db()
+    db.execute("DELETE FROM transactions WHERE deleted_at IS NOT NULL")
     db.commit()
     return jsonify({"ok": True})
 
@@ -790,7 +828,7 @@ KIND_SQL = {"exchange": "app_id IS NULL", "topup": "app_id IS NOT NULL"}  # exch
 
 
 def tx_filters():
-    where, params = [], []
+    where, params = ["deleted_at IS NULL"], []
     if request.args.get("kind") in KIND_SQL:
         where.append(KIND_SQL[request.args["kind"]])
     if request.args.get("from"):
@@ -814,9 +852,10 @@ def tx_filters():
 
 def period_totals(db, prefix):
     """Totals for a day/month prefix, overall and per kind (exchange / top-up)."""
-    out = totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ?", (prefix + "%",)).fetchone())
+    out = totals(db.execute(TOTALS_SQL + " WHERE tx_date LIKE ? AND deleted_at IS NULL", (prefix + "%",)).fetchone())
     for kind, cond in KIND_SQL.items():
-        out[kind] = totals(db.execute(f"{TOTALS_SQL} WHERE tx_date LIKE ? AND {cond}", (prefix + "%",)).fetchone())
+        out[kind] = totals(db.execute(f"{TOTALS_SQL} WHERE tx_date LIKE ? AND deleted_at IS NULL AND {cond}",
+                                      (prefix + "%",)).fetchone())
     return out
 
 
@@ -855,7 +894,7 @@ def api_summary():
 
     start = (datetime.now() - timedelta(days=13)).strftime("%Y-%m-%d")
     per_day = {r["d"]: r["p"] for r in db.execute(
-        "SELECT substr(tx_date,1,10) d, SUM(profit) p FROM transactions WHERE tx_date >= ? GROUP BY d", (start,))}
+        "SELECT substr(tx_date,1,10) d, SUM(profit) p FROM transactions WHERE tx_date >= ? AND deleted_at IS NULL GROUP BY d", (start,))}
     daily = [{"date": d, "profit": round(per_day.get(d, 0), 2)}
              for d in ((datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1))]
 

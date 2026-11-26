@@ -355,6 +355,15 @@
       <button class="btn ghost block" data-add="methods" style="margin-top:12px">+ إضافة طريقة دفع</button>
       <input type="file" id="logo-file" accept="image/*" class="hidden">
 
+      <div class="card" style="margin-top:24px" id="trash-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0">🗑️ سلة المهملات</h3>
+          <button class="btn sm danger hidden" id="trash-empty">إفراغ السلة</button>
+        </div>
+        <p class="muted small" style="margin-top:0">العمليات المحذوفة تبقى هنا: استرجعها أو احذفها نهائياً. لا تدخل في الأرباح والتقارير.</p>
+        <div id="trash-list"></div>
+      </div>
+
       <div class="card" style="margin-top:24px" id="account-card">
         <h3>الحساب: رمز الدخول PIN</h3>
         <p class="muted small" id="pin-note"></p>
@@ -504,7 +513,7 @@ function switchTab(name) {
   if (name === "history") loadHistory();
   if (name === "home") loadHome();
   if (name === "list") loadList();
-  if (name === "methods") { renderList("apps"); renderList("methods"); renderAccount(); }
+  if (name === "methods") { renderList("apps"); renderList("methods"); renderAccount(); loadTrash(); }
   if (name === "rates") renderRates();
   window.scrollTo({ top: 0 });
 }
@@ -1145,7 +1154,7 @@ document.addEventListener("click", e => {
   if (btn.dataset.act === "edit") editTx(t);
   else confirmTap(btn, async () => {
     await api(`/api/transactions/${t.id}`, { method: "DELETE" });
-    toast("تم الحذف"); tab === "home" ? loadHome() : tab === "history" ? loadHistory() : loadList();
+    toast("نُقلت إلى سلة المهملات 🗑️"); tab === "home" ? loadHome() : tab === "history" ? loadHistory() : loadList();
   });
 });
 
@@ -1168,6 +1177,36 @@ async function loadHome() {
   renderTxList($("recent-exchange"), recentEx, "لا توجد عمليات صرف بعد");
   renderTxList($("recent-topup"), recentTop, "لا توجد عمليات شحن بعد");
 }
+
+// ---------------------------------------------------------------- trash
+const trashCache = {};
+async function loadTrash() {
+  const rows = await api("/api/trash");
+  $("trash-empty").classList.toggle("hidden", !rows.length);
+  if (!rows.length) { $("trash-list").innerHTML = `<p class="muted center">السلة فارغة</p>`; return; }
+  rows.forEach(r => trashCache[r.id] = r);
+  $("trash-list").innerHTML = rows.map(txRow).join("");
+  $("trash-list").querySelectorAll(".item").forEach(el => {
+    const t = trashCache[el.dataset.id];
+    el.classList.add("trashed");
+    el.querySelector(".item-actions").innerHTML = `
+      <span class="muted small" style="margin-inline-end:auto">حُذفت <bdi>${esc(t.deleted_at.replace("T", " "))}</bdi></span>
+      <button class="btn sm ok" data-trash="restore">استرجاع</button>
+      <button class="btn sm danger" data-trash="purge">حذف نهائي</button>`;
+  });
+}
+$("trash-list").addEventListener("click", async e => {
+  const btn = e.target.closest("[data-trash]"); if (!btn) return;
+  const id = btn.closest(".item").dataset.id;
+  try {
+    if (btn.dataset.trash === "restore") {
+      await api(`/api/trash/${id}/restore`, { method: "POST" }); toast("تم استرجاع العملية"); loadTrash();
+    } else confirmTap(btn, async () => { await api(`/api/trash/${id}`, { method: "DELETE" }); toast("حُذفت نهائياً"); loadTrash(); });
+  } catch (ex) { toast(ex.message); }
+});
+$("trash-empty").addEventListener("click", () => confirmTap($("trash-empty"), async () => {
+  await api("/api/trash", { method: "DELETE" }); toast("تم إفراغ السلة"); loadTrash();
+}));
 
 // ---------------------------------------------------------------- history
 let historyKind = "";

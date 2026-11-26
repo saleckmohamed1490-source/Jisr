@@ -508,3 +508,4 @@ select.input { appearance: none; -webkit-appearance: none;
   margin: 18px 4px 8px; font-size: 14px; color: var(--muted); font-weight: 700;
 }
 .day-head:first-child { margin-top: 4px; }
+.item.trashed { opacity: .85; border-style: dashed; }

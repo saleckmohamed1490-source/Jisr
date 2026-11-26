@@ -121,3 +121,6 @@ SET unit = 'per5000',
     buy_rate  = CASE WHEN buy_rate  > 0 THEN round((500000 / buy_rate)::numeric, 4)  END,
     sell_rate = CASE WHEN sell_rate > 0 THEN round((500000 / sell_rate)::numeric, 4) END
 WHERE unit = 'per100' AND (code IN ('XOF', 'XAF') OR name ILIKE '%cfa%');
+
+-- v8: trash for deleted operations
+ALTER TABLE jisr.transactions ADD COLUMN IF NOT EXISTS deleted_at TEXT;
