@@ -330,3 +330,116 @@ h3 { font-size: 16px; }
 .cost-tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--muted);
   background: var(--surface-2); border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
 .brand-logo { width: 40px; height: 40px; border-radius: 12px; display: block; flex: none; }
+
+/* =====================================================================
+   Modern layer (MINASSA EXCHANGE)
+   ===================================================================== */
+:root {
+  --gold-grad: linear-gradient(135deg, #f6e08f 0%, #d4af37 45%, #a8821c 100%);
+  --card-grad: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 60%), #121212;
+  --ring: 0 0 0 3px rgba(212,175,55,.22);
+  --radius: 22px;
+}
+body { font-variant-numeric: tabular-nums; min-height: 100vh; }
+.bg-glow {
+  position: fixed; inset: -20vh -20vw auto; height: 60vh; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 60% at 50% 0%, rgba(212,175,55,.16), transparent 70%);
+}
+.wrap { padding-bottom: 120px; }
+
+/* Sticky glass header */
+.topbar {
+  position: sticky; top: 0; z-index: 20; margin: 0 -16px 8px; padding: 12px 16px;
+  background: rgba(10,10,10,.72); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid rgba(212,175,55,.12);
+}
+.brand-logo { width: 42px; height: 42px; border-radius: 13px; box-shadow: 0 4px 18px rgba(212,175,55,.18); }
+.brand-name {
+  font-size: 18px; letter-spacing: .5px;
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Floating bottom navigation */
+.tabs {
+  position: fixed; z-index: 30; bottom: calc(12px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  width: min(528px, calc(100% - 24px)); margin: 0; padding: 6px; gap: 4px; overflow: visible;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: rgba(20,20,20,.82); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(212,175,55,.18); border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,.55);
+}
+.tabs button {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border-radius: 18px;
+  background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap;
+  transition: background .2s, color .2s;
+}
+.tabs button.on { background: var(--primary-soft); color: var(--primary); }
+.tabs button.on svg { filter: drop-shadow(0 0 6px rgba(212,175,55,.5)); }
+
+/* Cards & sections */
+.card {
+  background: var(--card-grad); border: 1px solid rgba(212,175,55,.10); border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 8px 30px rgba(0,0,0,.35);
+}
+.card h3 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.card h3::before {
+  content: ""; width: 4px; height: 18px; border-radius: 4px; background: var(--gold-grad); flex: none;
+}
+#tab-home, #tab-rates, #tab-list, #tab-methods { animation: fadeUp .28s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Stats: the first one is the highlighted "today" card */
+.stat {
+  background: var(--card-grad); border: 1px solid rgba(212,175,55,.10); border-radius: 20px; padding: 16px;
+}
+.stats .stat:first-child {
+  background: radial-gradient(120% 140% at 100% 0%, rgba(212,175,55,.28), transparent 60%), #15130d;
+  border-color: rgba(212,175,55,.35);
+}
+.stat .value { font-size: 26px; letter-spacing: -.3px; }
+
+/* Inputs */
+.input {
+  background: #0d0d0d; border: 1.5px solid #2a2720; border-radius: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input:focus { border-color: var(--primary); box-shadow: var(--ring); }
+select.input { appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d4af37' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: left 14px center; padding-left: 36px; }
+[dir="ltr"] select.input { background-position: right 14px center; padding-left: 14px; padding-right: 36px; }
+
+/* Buttons */
+.btn { border-radius: 14px; }
+.btn.primary {
+  background: var(--gold-grad); color: #0a0a0a; border: 0;
+  box-shadow: 0 6px 20px rgba(212,175,55,.25), 0 1px 0 rgba(255,255,255,.35) inset;
+}
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.ghost { background: rgba(255,255,255,.03); border-color: #2a2720; }
+.btn.block { padding: 14px 18px; font-size: 16px; }
+
+/* Selectable tiles (apps, payment methods) */
+.method { background: #0f0f0f; border: 1.5px solid #24211b; border-radius: 18px; transition: border-color .15s, transform .1s, box-shadow .15s; }
+.method:active { transform: scale(.97); }
+.method.on { border-color: var(--primary); background: linear-gradient(180deg, rgba(212,175,55,.14), rgba(212,175,55,.04)); box-shadow: var(--ring); }
+.logo { border-radius: 14px; }
+
+/* Rate strip, profit box, segmented controls */
+.rate-chip { background: #121212; border-color: rgba(212,175,55,.18); }
+.profit-box { background: radial-gradient(120% 160% at 0% 0%, rgba(212,175,55,.12), transparent 60%), #0f0f0f; border: 1px solid rgba(212,175,55,.15); border-radius: 18px; }
+.seg { background: #0f0f0f; border: 1px solid #24211b; border-radius: 16px; }
+.seg button { border-radius: 12px; }
+.seg button.on { background: var(--primary-soft); color: var(--primary); box-shadow: none; }
+.chips button { background: #0f0f0f; border-color: #2a2720; }
+.item { background: #101010; border-color: #22201a; border-radius: 18px; }
+.rate-vals > div { background: #0f0f0f; border: 1px solid #22201a; }
+.toast { background: var(--gold-grad); color: #0a0a0a; border-radius: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+/* Login */
+.auth-hero { text-align: center; margin: 28px 0 18px; }
+.auth-hero img { border-radius: 24px; box-shadow: 0 10px 40px rgba(212,175,55,.25); }
+.auth-name {
+  margin-top: 14px; font-size: 24px; font-weight: 800; letter-spacing: 1px;
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#auth .card { max-width: 420px; margin: 0 auto; }
