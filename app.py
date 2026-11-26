@@ -852,6 +852,14 @@ def index():
     return send_from_directory(STATIC_DIR, "index.html")
 
 
+@app.route("/manifest.webmanifest")
+def manifest():
+    """Web app manifest: lets the site be installed and open full-screen (no browser bars)."""
+    resp = send_from_directory(STATIC_DIR, "manifest.webmanifest", mimetype="application/manifest+json")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
 @app.route("/healthz")
 def healthz():
     return {"ok": True}

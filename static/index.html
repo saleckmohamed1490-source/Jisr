@@ -8,7 +8,12 @@
 <title>MINASSA EXCHANGE</title>
 <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-title" content="MINASSA EXCHANGE">
+<meta name="apple-mobile-web-app-title" content="MINASSA">
+<!-- Installed to the home screen, the app opens full-screen without the browser's address bar and toolbar -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -18,6 +23,14 @@
 <div class="bg-glow" aria-hidden="true"></div>
 <div class="wrap">
   <header class="topbar">
+    <div class="install-tip hidden" id="install-tip">
+      <div>
+        <b>لإخفاء أشرطة المتصفح</b>
+        <div class="small" id="install-text"></div>
+      </div>
+      <button class="btn sm primary hidden" id="install-btn">تثبيت</button>
+      <button class="install-x" id="install-x" aria-label="إغلاق">✕</button>
+    </div>
     <div class="brand">
       <img class="brand-logo" src="/static/logo.svg" alt="" width="40" height="40">
       <div>
@@ -1203,6 +1216,32 @@ async function loadList() {
     }).join("");
   renderTxList($("tx-list"), rows, listKind === "topup" ? "لا توجد عمليات شحن" : listKind === "exchange" ? "لا توجد عمليات صرف" : "لا توجد عمليات");
 }
+
+// ---------------------------------------------------------------- install to home screen
+// Opened from the home-screen icon the app runs full-screen; in the browser we show how to install it.
+(function installTip() {
+  const standalone = window.navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+  let dismissed = false; try { dismissed = localStorage.getItem("jisr_install_tip") === "x"; } catch (_) {}
+  if (standalone || dismissed) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const show = text => { $("install-text").textContent = text; $("install-tip").classList.remove("hidden"); };
+  if (ios) show("اضغط زر المشاركة ⬆️ في Safari، ثم «إضافة إلى الشاشة الرئيسية»، وافتح التطبيق من أيقونته.");
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", e => {        // Android / Chrome
+    e.preventDefault(); deferred = e;
+    $("install-btn").classList.remove("hidden");
+    show("ثبّت التطبيق على هاتفك ليفتح بملء الشاشة.");
+  });
+  $("install-btn").addEventListener("click", async () => {
+    if (!deferred) return;
+    deferred.prompt(); await deferred.userChoice.catch(() => {}); deferred = null;
+    $("install-tip").classList.add("hidden");
+  });
+  $("install-x").addEventListener("click", () => {
+    $("install-tip").classList.add("hidden");
+    try { localStorage.setItem("jisr_install_tip", "x"); } catch (_) {}
+  });
+})();
 
 // ---------------------------------------------------------------- start
 setRange("month");
