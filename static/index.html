@@ -78,8 +78,9 @@
       <div class="lfield hidden" id="pass-field">
         <label for="a-pass">كلمة المرور</label>
         <div class="lrow"><svg class="lico" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8.5 11V7.5a3.5 3.5 0 0 1 6.8-1.2"/><circle cx="12" cy="15.4" r="1.3"/><path d="M12 16.7v1.6"/></svg><input class="line-input" id="a-pass" type="password" autocomplete="current-password"></div>
-        <div class="hint">حسابك ما زال بكلمة مرور. بعد الدخول عيّن رمز PIN من الإعدادات ⚙️ ← الحساب.</div>
+        <div class="hint">بعد الدخول عيّن رمز PIN من الإعدادات ⚙️ ← الحساب.</div>
       </div>
+      <p class="center small hidden" id="pass-toggle-wrap"><a href="#" id="pass-toggle">الدخول بكلمة المرور</a></p>
       <div class="alert error hidden" id="auth-err"></div>
       <button class="btn primary block" id="auth-btn">دخول</button>
     </form>
@@ -90,14 +91,14 @@
     <nav class="tabs" aria-label="التنقل">
       <button data-tab="home" class="on"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
       <button data-tab="rates"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4"/><path d="M20 16H6l4 4"/></svg><span>الأسعار</span></button>
-      <button data-tab="list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg><span>التقارير</span></button>
+      <button data-tab="list" class="admin-only"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/></svg><span>التقارير</span></button>
       <button data-tab="history"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg><span>السجل</span></button>
     </nav>
 
     <!-- Home -->
     <div id="tab-home">
       <div class="rate-strip" id="rate-strip"></div>
-      <div class="stats" id="stats"></div>
+      <div class="stats admin-only" id="stats"></div>
 
       <!-- Calculator (independent) -->
       <div class="card" id="calc-card">
@@ -148,7 +149,7 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">آخر عمليات الصرف</h3>
-          <button class="btn sm ghost" data-goto-kind="exchange">عرض الكل</button>
+          <button class="btn sm ghost admin-only" data-goto-kind="exchange">عرض الكل</button>
         </div>
         <div class="tx-box" id="recent-exchange"></div>
       </div>
@@ -219,12 +220,12 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">آخر عمليات الشحن</h3>
-          <button class="btn sm ghost" data-goto-kind="topup">عرض الكل</button>
+          <button class="btn sm ghost admin-only" data-goto-kind="topup">عرض الكل</button>
         </div>
         <div class="tx-box" id="recent-topup"></div>
       </div>
 
-      <div class="card">
+      <div class="card admin-only">
         <h3>الربح في آخر ١٤ يوم</h3>
         <div class="bars" id="bars"></div>
       </div>
@@ -244,6 +245,7 @@
           <div><label class="small muted">إلى</label><input class="input ltr" type="date" id="q-to"></div>
           <div id="q-app-field"><label class="small muted">التطبيق</label><select class="input" id="q-app"></select></div>
           <div><label class="small muted">طريقة الدفع</label><select class="input" id="q-method"></select></div>
+          <div><label class="small muted">العامل</label><select class="input" id="q-user"></select></div>
           <div><label class="small muted">بحث</label><input class="input" id="q-text" placeholder="زبون، باقة أو ملاحظة"></div>
         </div>
         <div class="chips" id="quick">
@@ -255,6 +257,11 @@
       </div>
 
       <div class="stats" id="list-stats" style="margin-top:12px"></div>
+
+      <div class="card" id="by-user-card">
+        <h3>حسب العامل</h3>
+        <div class="table-wrap"><table class="table" id="by-user"></table></div>
+      </div>
 
       <div class="card" id="by-app-card">
         <h3>حسب التطبيق</h3>
@@ -292,7 +299,7 @@
           <button class="btn sm ghost" id="share-rates">نسخ الأسعار لواتساب</button>
         </div>
         <div id="rates-list"></div>
-        <button class="btn ghost block" id="add-rate" style="margin-top:10px">+ إضافة عملة</button>
+        <button class="btn ghost block admin-only" id="add-rate" style="margin-top:10px">+ إضافة عملة</button>
       </div>
 
       <div class="card hidden" id="rate-form-card">
@@ -345,7 +352,29 @@
 
     <!-- Settings: apps, payment methods, account -->
     <div id="tab-methods" class="hidden">
-      <h2 style="margin:4px 0 14px">الإعدادات</h2>
+      <h2 style="margin:4px 0 6px">الإعدادات</h2>
+      <p class="muted small" style="margin:0 0 14px" id="me-line"></p>
+
+      <div class="card admin-only" id="users-card" style="margin-bottom:24px">
+        <h3>👥 العمّال والحسابات</h3>
+        <p class="muted small" style="margin-top:0">العامل يسجّل العمليات ويرى عملياته فقط، ولا يرى التقارير والأرباح والإعدادات والسلة.</p>
+        <div id="users-list"></div>
+        <form id="user-form" novalidate style="margin-top:14px">
+          <div class="two">
+            <div class="field"><label for="u-name">الاسم</label><input class="input" id="u-name" placeholder="مثلاً: أحمد"></div>
+            <div class="field"><label for="u-username">اسم المستخدم أو الهاتف</label><input class="input ltr" id="u-username" autocomplete="off"></div>
+          </div>
+          <div class="two">
+            <div class="field"><label for="u-pin">رمز PIN (٤ أرقام)</label><input class="input ltr" id="u-pin" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+            <div class="field"><label for="u-role">الصلاحية</label>
+              <select class="input" id="u-role"><option value="worker">عامل</option><option value="admin">مسؤول (إدارة)</option></select></div>
+          </div>
+          <div class="alert error hidden" id="user-err"></div>
+          <button class="btn primary block">+ إضافة حساب</button>
+        </form>
+      </div>
+
+      <div class="admin-only">
       <p class="muted small" style="margin-top:0">اضغط على المربع لرفع الشعار.</p>
       <h3>التطبيقات</h3>
       <div class="list" id="apps-list"></div>
@@ -354,8 +383,9 @@
       <div class="list" id="methods-list"></div>
       <button class="btn ghost block" data-add="methods" style="margin-top:12px">+ إضافة طريقة دفع</button>
       <input type="file" id="logo-file" accept="image/*" class="hidden">
+      </div>
 
-      <div class="card" style="margin-top:24px" id="trash-card">
+      <div class="card admin-only" style="margin-top:24px" id="trash-card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
           <h3 style="margin:0">🗑️ سلة المهملات</h3>
           <button class="btn sm danger hidden" id="trash-empty">إفراغ السلة</button>
@@ -465,7 +495,8 @@ async function boot() {
   const s = await (await fetch("/api/state", { credentials: "same-origin" })).json();
   if (s.logged_in) return enterApp();
   authMode = s.setup_needed ? "setup" : "login";
-  authType = s.auth_type || "pin";
+  authType = "pin";
+  $("pass-toggle-wrap").classList.toggle("hidden", !(s.password_login && authMode === "login"));
   const setup = authMode === "setup", usePin = setup || authType === "pin";
   $("auth-btn").textContent = setup ? "إنشاء الحساب" : "دخول";
   $("setup-hint").classList.toggle("hidden", !setup);
@@ -494,19 +525,31 @@ $("auth-form").addEventListener("submit", async e => {
   } finally { btn.disabled = false; }
 });
 $("logout").addEventListener("click", async () => { await api("/api/logout", { method: "POST" }); boot(); });
+$("pass-toggle").addEventListener("click", e => {
+  e.preventDefault();
+  authType = authType === "pin" ? "password" : "pin";
+  $("pin-field").classList.toggle("hidden", authType !== "pin");
+  $("pass-field").classList.toggle("hidden", authType === "pin");
+  $("pass-toggle").textContent = authType === "pin" ? "الدخول بكلمة المرور" : "الدخول برمز PIN";
+});
 
-let settings = {};
+let settings = {}, me = {};
+const isAdmin = () => me.role === "admin";
 async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden"); $("settings-btn").classList.remove("hidden");
   [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
+  me = settings.me || {};
+  document.body.dataset.role = me.role || "worker";   // CSS hides .admin-only for workers
+  if (isAdmin()) loadUsers().catch(() => {});
   resetForm(); resetCalc();
-  // /admin opens on the settings page (apps, payment methods, trash, account)
-  switchTab(location.pathname.replace(/\/+$/, "") === "/admin" ? "methods" : "home");
+  // /admin opens on the settings page (apps, payment methods, trash, workers, account) for admins
+  switchTab(isAdmin() && location.pathname.replace(/\/+$/, "") === "/admin" ? "methods" : "home");
 }
 
 // ---------------------------------------------------------------- tabs
 let tab = "home";
 function switchTab(name) {
+  if (name === "list" && !isAdmin()) name = "home";   // reports are for the admin only
   tab = name;
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   ["home", "rates", "list", "history", "methods"].forEach(n => $("tab-" + n).classList.toggle("hidden", n !== name));
@@ -514,7 +557,10 @@ function switchTab(name) {
   if (name === "history") loadHistory();
   if (name === "home") loadHome();
   if (name === "list") loadList();
-  if (name === "methods") { renderList("apps"); renderList("methods"); renderAccount(); loadTrash(); }
+  if (name === "methods") {
+    renderAccount();
+    if (isAdmin()) { renderList("apps"); renderList("methods"); loadTrash(); loadUsers(); }
+  }
   if (name === "rates") renderRates();
   window.scrollTo({ top: 0 });
 }
@@ -627,8 +673,63 @@ $("logo-file").addEventListener("change", async () => {
   catch (ex) { toast(ex.message); }
 });
 
+// ---------------------------------------------------------------- workers & accounts (admin)
+let users = [];
+const roleName = r => r === "admin" ? "مسؤول" : "عامل";
+async function loadUsers() {
+  users = await api("/api/users");
+  fillFilter($("q-user"), users);
+  $("users-list").innerHTML = users.map(u => `
+    <div class="item user-row" data-id="${u.id}" style="margin-bottom:8px">
+      <div class="item-head">
+        <b>👤 ${esc(u.name)}</b>
+        <span class="tag ${u.role === "admin" ? "sell" : ""}">${roleName(u.role)}</span>
+        ${u.is_active ? "" : `<span class="tag" style="color:var(--danger)">موقوف</span>`}
+        ${u.id === me.id ? `<span class="tag">أنت</span>` : ""}
+        <span class="code ltr" style="margin-inline-start:auto">${esc(u.username)}</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn sm ghost" data-u="pin">تغيير الرمز</button>
+        ${u.id === me.id ? "" : `
+        <button class="btn sm ghost" data-u="role">${u.role === "admin" ? "اجعله عاملاً" : "اجعله مسؤولاً"}</button>
+        <button class="btn sm ghost" data-u="toggle">${u.is_active ? "إيقاف" : "تفعيل"}</button>
+        <button class="btn sm danger" data-u="delete">حذف</button>`}
+      </div>
+    </div>`).join("");
+}
+$("users-list").addEventListener("click", async e => {
+  const btn = e.target.closest("[data-u]"); if (!btn) return;
+  const u = users.find(x => x.id === +btn.closest(".user-row").dataset.id);
+  const save = body => api(`/api/users/${u.id}`, { method: "PUT", body: { name: u.name, role: u.role, is_active: u.is_active, ...body } });
+  try {
+    if (btn.dataset.u === "pin") {
+      const pin = normDigits(prompt(`رمز PIN جديد لـ ${u.name} (٤ أرقام):`) || "");
+      if (!pin) return;
+      await save({ pin }); toast("تم تغيير الرمز");
+    }
+    if (btn.dataset.u === "role") { await save({ role: u.role === "admin" ? "worker" : "admin" }); toast("تم التغيير"); }
+    if (btn.dataset.u === "toggle") { await save({ is_active: !u.is_active }); toast(u.is_active ? "تم إيقاف الحساب" : "تم تفعيل الحساب"); }
+    if (btn.dataset.u === "delete") return confirmTap(btn, async () => {
+      try { await api(`/api/users/${u.id}`, { method: "DELETE" }); toast("تم حذف الحساب"); loadUsers(); } catch (ex) { toast(ex.message); }
+    });
+    loadUsers();
+  } catch (ex) { toast(ex.message); }
+});
+$("user-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("user-err").classList.add("hidden");
+  try {
+    await api("/api/users", { method: "POST", body: {
+      name: $("u-name").value.trim(), username: normDigits($("u-username").value.trim()),
+      pin: normDigits($("u-pin").value), role: $("u-role").value } });
+    ["u-name", "u-username", "u-pin"].forEach(id => $(id).value = ""); $("u-role").value = "worker";
+    toast("تم إنشاء الحساب"); loadUsers();
+  } catch (ex) { $("user-err").textContent = ex.message; $("user-err").classList.remove("hidden"); }
+});
+
 // ---------------------------------------------------------------- account (PIN)
 function renderAccount() {
+  $("me-line").textContent = `أنت: ${me.name || ""} · ${roleName(me.role)}`;
   const pin = settings.auth_type === "pin";
   $("pin-note").textContent = pin ? "غيّر رمز الدخول المكوّن من ٤ أرقام." : "حسابك يدخل الآن بكلمة مرور. عيّن رمزاً من ٤ أرقام لتستعمل صفحة الدخول الجديدة.";
   $("p-current-label").textContent = pin ? "الرمز الحالي" : "كلمة المرور الحالية";
@@ -704,8 +805,8 @@ function renderRates() {
              <div><span class="k">بيع</span><b>${esc(rateText(r, r.sell_rate))}</b></div>`}
       </div>
       <div class="item-actions">
-        <button class="btn sm ghost" data-act="edit">تعديل السعر</button>
-        <button class="btn sm danger" data-act="delete">حذف</button>
+        <button class="btn sm ghost admin-only" data-act="edit">تعديل السعر</button>
+        <button class="btn sm danger admin-only" data-act="delete">حذف</button>
       </div>
     </div>`).join("") || `<p class="muted center">لا توجد أسعار بعد</p>`;
 }
@@ -1134,7 +1235,7 @@ function txRow(t) {
         <div class="main">
           <div class="title">${title}</div>
           <div class="meta">${a ? `دفع <bdi>${fmt(t.mru_paid)}</bdi> أوقية على ` : ""}${esc(t.method_name)} · ${cost}</div>
-          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi>${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
+          <div class="meta"><bdi>${esc(t.tx_date.replace("T", " "))}</bdi>${isAdmin() && t.created_by_name ? ` · 👤 ${esc(t.created_by_name)}` : ""}${t.customer ? " · " + esc(t.customer) : ""}${t.note ? " · " + esc(t.note) : ""}</div>
         </div>
         <div class="profit ${cls(t.profit)}">${signed(t.profit)}<small>أوقية</small></div>
       </div>
@@ -1164,7 +1265,10 @@ const stat = (label, value, sub, colorCls = "") =>
 
 async function loadHome() {
   const [s, recentEx, recentTop] = await Promise.all([
-    api("/api/summary"), api("/api/transactions?limit=5&kind=exchange"), api("/api/transactions?limit=5&kind=topup")]);
+    isAdmin() ? api("/api/summary") : null, api("/api/transactions?limit=5&kind=exchange"), api("/api/transactions?limit=5&kind=topup")]);
+  renderTxList($("recent-exchange"), recentEx, "لا توجد عمليات صرف بعد");
+  renderTxList($("recent-topup"), recentTop, "لا توجد عمليات شحن بعد");
+  if (!s) return;
   const split = p => `صرف <bdi>${signed(p.exchange.profit)}</bdi> · شحن <bdi>${signed(p.topup.profit)}</bdi>`;
   $("stats").innerHTML =
     stat("ربح اليوم", signed(s.today.profit), split(s.today), cls(s.today.profit)) +
@@ -1191,7 +1295,7 @@ async function loadTrash() {
     const t = trashCache[el.dataset.id];
     el.classList.add("trashed");
     el.querySelector(".item-actions").innerHTML = `
-      <span class="muted small" style="margin-inline-end:auto">حُذفت <bdi>${esc(t.deleted_at.replace("T", " "))}</bdi></span>
+      <span class="muted small" style="margin-inline-end:auto">حذفها ${esc(t.deleted_by_name || "—")} · <bdi>${esc(t.deleted_at.replace("T", " "))}</bdi></span>
       <button class="btn sm ok" data-trash="restore">استرجاع</button>
       <button class="btn sm danger" data-trash="purge">حذف نهائي</button>`;
   });
@@ -1252,6 +1356,7 @@ document.querySelectorAll("#quick button").forEach(b => b.addEventListener("clic
 }));
 $("q-method").addEventListener("change", loadList);
 $("q-app").addEventListener("change", loadList);
+$("q-user").addEventListener("change", loadList);
 let qTimer; $("q-text").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(loadList, 300); });
 
 // Reports show exchange operations or app top-ups separately (or both).
@@ -1276,6 +1381,7 @@ function listQuery() {
   if ($("q-to").value) p.set("to", $("q-to").value);
   if ($("q-method").value) p.set("method_id", $("q-method").value);
   if ($("q-app").value) p.set("app_id", $("q-app").value);
+  if ($("q-user").value) p.set("user_id", $("q-user").value);
   if ($("q-text").value.trim()) p.set("q", $("q-text").value.trim());
   return p.toString();
 }
@@ -1289,6 +1395,10 @@ async function loadList() {
     stat("عدد العمليات", f.count) +
     stat("دفع الزبائن", fmt(f.mru_paid), "أوقية") +
     stat("الدولار المصروف", fmt(f.usd) + " $", `تكلفته ${fmt(f.cost_mru)} أوقية`);
+  $("by-user-card").classList.toggle("hidden", !s.by_user.length);
+  $("by-user").innerHTML = `<tr><th>العامل</th><th>عدد</th><th>دفع الزبائن</th><th>الربح</th></tr>` +
+    s.by_user.map(r => `<tr><td><b>👤 ${esc(r.created_by_name || "—")}</b></td><td class="num">${r.n}</td>
+      <td class="num">${fmt(r.mru_paid)}</td><td class="num ${cls(r.profit)}">${signed(r.profit)}</td></tr>`).join("");
   const withApp = s.by_app.filter(r => r.app_id);
   $("by-app-card").classList.toggle("hidden", !withApp.length || listKind === "exchange");
   $("by-app").innerHTML = `<tr><th>التطبيق</th><th>عدد</th><th>دفع الزبائن</th><th>الدولار</th><th>الربح</th></tr>` +

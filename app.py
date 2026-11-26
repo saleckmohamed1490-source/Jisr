@@ -84,6 +84,10 @@ MESSAGES = {
     "bad_pin": "الرمز يجب أن يكون ٤ أرقام",
     "pin_mismatch": "الرمزان غير متطابقين",
     "wrong_current": "الرمز أو كلمة المرور الحالية غير صحيحة",
+    "admin_only": "هذه الصفحة للإدارة فقط",
+    "username_taken": "اسم المستخدم مستعمل",
+    "last_admin": "لا يمكن: يجب أن يبقى مسؤول واحد على الأقل",
+    "not_self": "لا يمكنك حذف حسابك",
     "required": "املأ الحقول المطلوبة",
     "bad_rate": "أدخل سعر الدولار",
     "bad_usd": "أدخل كم كلّف من دولار",
@@ -157,7 +161,8 @@ def init_db():
                          ("cost_type", "TEXT NOT NULL DEFAULT 'usd'"), ("cur_buy_rate", "REAL"),
                          ("rate_unit", "TEXT NOT NULL DEFAULT 'per_unit'"), ("app_id", "INTEGER"),
                          ("app_name", "TEXT NOT NULL DEFAULT ''"), ("package", "TEXT NOT NULL DEFAULT ''"),
-                         ("deleted_at", "TEXT")):
+                         ("deleted_at", "TEXT"), ("deleted_by_name", "TEXT NOT NULL DEFAULT ''"),
+                         ("created_by", "INTEGER"), ("created_by_name", "TEXT NOT NULL DEFAULT ''")):
             if col not in cols:
                 db.execute(f"ALTER TABLE transactions ADD COLUMN {col} {ddl}")
     rate_cols = [r[1] for r in db.execute("PRAGMA table_info(rates)")]
@@ -173,6 +178,18 @@ def init_db():
         id INTEGER PRIMARY KEY CHECK (id = 1),
         username TEXT NOT NULL,
         password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        username TEXT NOT NULL UNIQUE,
+        secret_hash TEXT NOT NULL,
+        auth_type TEXT NOT NULL DEFAULT 'pin',
+        role TEXT NOT NULL DEFAULT 'worker',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        fail_count INTEGER NOT NULL DEFAULT 0,
+        locked_until REAL,
         created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS settings (
@@ -207,6 +224,9 @@ def init_db():
         app_name TEXT NOT NULL DEFAULT '',
         package TEXT NOT NULL DEFAULT '',
         deleted_at TEXT,                 -- set when moved to the trash
+        deleted_by_name TEXT NOT NULL DEFAULT '',
+        created_by INTEGER,
+        created_by_name TEXT NOT NULL DEFAULT '',
         customer TEXT NOT NULL DEFAULT '',
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
@@ -240,6 +260,13 @@ def init_db():
         updated_at TEXT NOT NULL
     );
     """)
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
+        old = db.execute("SELECT username, password_hash, created_at FROM admin WHERE id = 1").fetchone()
+        if old:
+            kind = db.execute("SELECT value FROM settings WHERE key = 'auth_type'").fetchone()
+            db.execute("INSERT INTO users (name, username, secret_hash, auth_type, role, created_at) "
+                       "VALUES (?, ?, ?, ?, 'admin', ?)",
+                       (old[0], old[0], old[1], "pin" if kind and kind[0] == "pin" else "password", old[2]))
     if db.execute("SELECT COUNT(*) FROM rates").fetchone()[0] == 0:
         db.execute("INSERT INTO rates (code, name, flag, unit, updated_at) VALUES ('USD', 'الدولار', '💵', 'per_unit', ?)",
                    (now_local(),))
@@ -274,15 +301,67 @@ def num(value):
 
 
 # ---------------------------------------------------------------------------
-# Auth
+# Auth: users with roles
+#   admin  : everything (reports, settings, trash, workers)
+#   worker : records operations, sees rates and only their own operations
+# Sign-in is a username (or phone number) + 4-digit PIN. An account created before
+# PINs keeps its password (auth_type = "password") until a PIN is set.
 # ---------------------------------------------------------------------------
+PIN_RE = re.compile(r"^\d{4}$")
+LOCK_AFTER = 5            # failed attempts before that account's sign-in is locked
+LOCK_BASE_MIN = 15        # first lock length; doubles with each further lock, up to a day
+ROLES = ("admin", "worker")
+USER_COLS = "id, name, username, role, auth_type, is_active, created_at"
+
+
+def norm_pin(value):
+    digits = str(value or "").strip()
+    return digits.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
+
+
+def hash_secret(secret):
+    return bcrypt.hashpw(secret.encode(), bcrypt.gensalt()).decode()
+
+
+def current_user():
+    """The signed-in, active user (cached per request), or None."""
+    if "me" in g:
+        return g.me
+    g.me = None
+    uid = session.get("uid")
+    if not uid and session.get("admin"):            # session from before user accounts: map by username
+        row = get_db().execute("SELECT id FROM users WHERE username = ?", (session.get("user"),)).fetchone()
+        if row:
+            uid = session["uid"] = row["id"]
+    if uid:
+        row = get_db().execute(f"SELECT {USER_COLS} FROM users WHERE id = ?", (uid,)).fetchone()
+        if row and row["is_active"]:
+            g.me = dict(row)
+    return g.me
+
+
+def is_admin():
+    me = current_user()
+    return bool(me and me["role"] == "admin")
+
+
 def login_required(fn):
     @wraps(fn)
     def wrapper(*a, **kw):
-        if not session.get("admin"):
+        if not current_user():
             return err("unauthorized", 401)
         if request.method not in ("GET", "HEAD") and request.headers.get("X-Jisr") != "1":
             return err("unauthorized", 403)
+        return fn(*a, **kw)
+    return wrapper
+
+
+def admin_required(fn):
+    @wraps(fn)
+    @login_required
+    def wrapper(*a, **kw):
+        if not is_admin():
+            return err("admin_only", 403)
         return fn(*a, **kw)
     return wrapper
 
@@ -295,48 +374,33 @@ def too_many_logins():
     return len(hits) > 10
 
 
-def start_session(username):
+def start_session(user_row):
     session.clear()
     session.permanent = True
-    session["admin"] = True
-    session["user"] = username
+    session["uid"] = user_row["id"]
 
 
-# Sign-in is a username (or phone number) + 4-digit PIN. Accounts created before PINs
-# keep their password until a PIN is set (settings: auth_type = "pin").
-PIN_RE = re.compile(r"^\d{4}$")
-LOCK_AFTER = 5            # failed attempts before the sign-in is locked
-LOCK_BASE_MIN = 15        # first lock length; doubles with each further lock, up to a day
-
-
-def norm_pin(value):
-    digits = str(value or "").strip()
-    return digits.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
-
-
-def auth_type():
-    return "pin" if get_setting("auth_type") == "pin" else "password"
-
-
-def lock_remaining_min():
-    until = num(get_setting("login_locked_until")) or 0
-    left = until - time.time()
+def lock_minutes_left(row):
+    left = (num(row["locked_until"]) or 0) - time.time()
     return int(left // 60) + 1 if left > 0 else 0
 
 
 @app.get("/api/state")
 def api_state():
-    has_admin = get_db().execute("SELECT 1 FROM admin").fetchone() is not None
-    return jsonify({"setup_needed": not has_admin, "logged_in": bool(session.get("admin")),
-                    "auth_type": auth_type() if has_admin else "pin"})
+    db = get_db()
+    has_users = db.execute("SELECT 1 FROM users").fetchone() is not None
+    has_password_user = db.execute("SELECT 1 FROM users WHERE auth_type = 'password' AND is_active = 1").fetchone()
+    return jsonify({"setup_needed": not has_users, "logged_in": bool(current_user()),
+                    "password_login": bool(has_password_user)})
 
 
 @app.post("/api/setup")
 def api_setup():
+    """Creates the first account, which is the admin."""
     if request.headers.get("X-Jisr") != "1":
         return err("unauthorized", 403)
     d = request.get_json(silent=True) or {}
-    user = str(d.get("username") or "").strip()[:50]
+    user = norm_pin(d.get("username"))[:50]
     pin = norm_pin(d.get("pin"))
     if not user or not pin:
         return err("required")
@@ -345,14 +409,13 @@ def api_setup():
     if pin != norm_pin(d.get("confirm_pin")):
         return err("pin_mismatch")
     db = get_db()
-    try:
-        db.execute("INSERT INTO admin (id, username, password_hash, created_at) VALUES (1, ?, ?, ?)",
-                   (user, bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode(), now_local()))
-        set_setting(db, "auth_type", "pin")
-        db.commit()
-    except IntegrityErrors:
+    if db.execute("SELECT 1 FROM users").fetchone():
         return err("already_setup", 409)
-    start_session(user)
+    uid = db.execute("INSERT INTO users (name, username, secret_hash, auth_type, role, is_active, created_at) "
+                     "VALUES (?, ?, ?, 'pin', 'admin', 1, ?) RETURNING id",
+                     (user, user, hash_secret(pin), now_local())).fetchone()["id"]
+    db.commit()
+    start_session({"id": uid})
     return jsonify({"ok": True})
 
 
@@ -362,55 +425,140 @@ def api_login():
         return err("unauthorized", 403)
     if too_many_logins():
         return err("too_many", 429)
-    left = lock_remaining_min()
-    if left:
-        return jsonify({"ok": False, "error": "locked", "message": f"محاولات خاطئة كثيرة، حاول بعد {left} دقيقة"}), 429
     d = request.get_json(silent=True) or {}
-    user = norm_pin(d.get("username"))      # also normalises Arabic digits in a phone-number username
+    username = norm_pin(d.get("username"))      # also normalises Arabic digits in a phone-number username
     secret = norm_pin(d.get("pin")) if d.get("pin") not in (None, "") else str(d.get("password") or "")
     db = get_db()
-    row = db.execute("SELECT * FROM admin WHERE id = 1").fetchone()
-    if not row or row["username"] != user or not bcrypt.checkpw(secret.encode(), row["password_hash"].encode()):
-        fails = int(num(get_setting("login_fail_count")) or 0) + 1
-        set_setting(db, "login_fail_count", fails)
-        if fails % LOCK_AFTER == 0:   # lock, longer each time
-            minutes = min(LOCK_BASE_MIN * 2 ** (fails // LOCK_AFTER - 1), 24 * 60)
-            set_setting(db, "login_locked_until", time.time() + minutes * 60)
-        db.commit()
-        remaining = LOCK_AFTER - fails % LOCK_AFTER
-        if remaining == LOCK_AFTER:   # this attempt triggered a lock
-            return jsonify({"ok": False, "error": "locked",
-                            "message": f"محاولات خاطئة كثيرة، حاول بعد {lock_remaining_min()} دقيقة"}), 429
-        wrong = "اسم المستخدم أو الرمز غير صحيح" if auth_type() == "pin" else MESSAGES["login_failed"]
-        msg = wrong + (f" (بقيت {remaining} محاولات)" if remaining > 1 else " (بقيت محاولة واحدة)")
-        return jsonify({"ok": False, "error": "login_failed", "message": msg}), 401
-    set_setting(db, "login_fail_count", 0)
-    set_setting(db, "login_locked_until", 0)
+    row = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    if row and lock_minutes_left(row):
+        return jsonify({"ok": False, "error": "locked",
+                        "message": f"محاولات خاطئة كثيرة، حاول بعد {lock_minutes_left(row)} دقيقة"}), 429
+    if not row or not row["is_active"] or not bcrypt.checkpw(secret.encode(), row["secret_hash"].encode()):
+        if row:   # count failures per account; lock longer each time
+            fails = (row["fail_count"] or 0) + 1
+            locked_until = row["locked_until"]
+            if fails % LOCK_AFTER == 0:
+                locked_until = time.time() + min(LOCK_BASE_MIN * 2 ** (fails // LOCK_AFTER - 1), 24 * 60) * 60
+            db.execute("UPDATE users SET fail_count = ?, locked_until = ? WHERE id = ?", (fails, locked_until, row["id"]))
+            db.commit()
+            remaining = LOCK_AFTER - fails % LOCK_AFTER
+            if remaining == LOCK_AFTER:
+                minutes = int((locked_until - time.time()) // 60) + 1
+                return jsonify({"ok": False, "error": "locked",
+                                "message": f"محاولات خاطئة كثيرة، حاول بعد {minutes} دقيقة"}), 429
+            hint = f" (بقيت {remaining} محاولات)" if remaining > 1 else " (بقيت محاولة واحدة)"
+        else:
+            hint = ""
+        msg = "اسم المستخدم أو الرمز غير صحيح" if d.get("pin") not in (None, "") else MESSAGES["login_failed"]
+        return jsonify({"ok": False, "error": "login_failed", "message": msg + hint}), 401
+    db.execute("UPDATE users SET fail_count = 0, locked_until = NULL WHERE id = ?", (row["id"],))
     db.commit()
-    start_session(user)
+    start_session(row)
     return jsonify({"ok": True})
+
+
+@app.get("/api/me")
+@login_required
+def api_me():
+    return jsonify(current_user())
 
 
 @app.post("/api/pin")
 @login_required
 def api_set_pin():
-    """Set or change the 4-digit PIN; needs the current PIN or password."""
+    """Change your own PIN; needs your current PIN or password."""
+    me = current_user()
     d = request.get_json(silent=True) or {}
-    current = norm_pin(d.get("current")) if auth_type() == "pin" else str(d.get("current") or "")
+    current = norm_pin(d.get("current")) if me["auth_type"] == "pin" else str(d.get("current") or "")
     pin, confirm = norm_pin(d.get("pin")), norm_pin(d.get("confirm_pin"))
     if not PIN_RE.match(pin):
         return err("bad_pin")
     if pin != confirm:
         return err("pin_mismatch")
     db = get_db()
-    row = db.execute("SELECT password_hash FROM admin WHERE id = 1").fetchone()
-    if not row or not bcrypt.checkpw(current.encode(), row["password_hash"].encode()):
+    row = db.execute("SELECT secret_hash FROM users WHERE id = ?", (me["id"],)).fetchone()
+    if not bcrypt.checkpw(current.encode(), row["secret_hash"].encode()):
         return err("wrong_current", 403)
-    db.execute("UPDATE admin SET password_hash = ? WHERE id = 1",
-               (bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode(),))
-    set_setting(db, "auth_type", "pin")
+    db.execute("UPDATE users SET secret_hash = ?, auth_type = 'pin' WHERE id = ?", (hash_secret(pin), me["id"]))
     db.commit()
     return jsonify({"ok": True, "auth_type": "pin"})
+
+
+# ---- workers / users (admin only)
+@app.get("/api/users")
+@admin_required
+def api_users():
+    rows = get_db().execute(f"SELECT {USER_COLS} FROM users ORDER BY role, id").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/api/users")
+@admin_required
+def api_user_create():
+    d = request.get_json(silent=True) or {}
+    name = str(d.get("name") or "").strip()[:60]
+    username = norm_pin(d.get("username"))[:50]
+    pin = norm_pin(d.get("pin"))
+    role = d.get("role") if d.get("role") in ROLES else "worker"
+    if not name or not username:
+        return err("required")
+    if not PIN_RE.match(pin):
+        return err("bad_pin")
+    db = get_db()
+    if db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+        return err("username_taken", 409)
+    uid = db.execute("INSERT INTO users (name, username, secret_hash, auth_type, role, is_active, created_at) "
+                     "VALUES (?, ?, ?, 'pin', ?, 1, ?) RETURNING id",
+                     (name, username, hash_secret(pin), role, now_local())).fetchone()["id"]
+    db.commit()
+    return jsonify({"ok": True, "id": uid}), 201
+
+
+def admins_left_without(db, uid):
+    return db.execute("SELECT COUNT(*) n FROM users WHERE role = 'admin' AND is_active = 1 AND id <> ?",
+                      (uid,)).fetchone()["n"]
+
+
+@app.put("/api/users/<int:uid>")
+@admin_required
+def api_user_update(uid):
+    d = request.get_json(silent=True) or {}
+    db = get_db()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+    if not row:
+        return err("not_found", 404)
+    name = str(d.get("name") or row["name"]).strip()[:60]
+    role = d.get("role") if d.get("role") in ROLES else row["role"]
+    active = 0 if d.get("is_active") in (False, 0, "0") else 1
+    # never leave the app without an active admin
+    if (role != "admin" or not active) and row["role"] == "admin" and not admins_left_without(db, uid):
+        return err("last_admin", 409)
+    db.execute("UPDATE users SET name = ?, role = ?, is_active = ? WHERE id = ?", (name, role, active, uid))
+    pin = norm_pin(d.get("pin"))
+    if pin:                                   # admin resets the user's PIN
+        if not PIN_RE.match(pin):
+            return err("bad_pin")
+        db.execute("UPDATE users SET secret_hash = ?, auth_type = 'pin', fail_count = 0, locked_until = NULL "
+                   "WHERE id = ?", (hash_secret(pin), uid))
+    db.execute("UPDATE transactions SET created_by_name = ? WHERE created_by = ?", (name, uid))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/users/<int:uid>")
+@admin_required
+def api_user_delete(uid):
+    db = get_db()
+    row = db.execute("SELECT role FROM users WHERE id = ?", (uid,)).fetchone()
+    if not row:
+        return err("not_found", 404)
+    if uid == current_user()["id"]:
+        return err("not_self", 409)
+    if row["role"] == "admin" and not admins_left_without(db, uid):
+        return err("last_admin", 409)
+    db.execute("DELETE FROM users WHERE id = ?", (uid,))   # their operations keep the saved name
+    db.commit()
+    return jsonify({"ok": True})
 
 
 @app.post("/api/logout")
@@ -488,7 +636,7 @@ def register_list_routes(kind):
         lib = library_versions(kind)
         return jsonify([list_item_json(kind, r, lib) for r in rows])
 
-    @login_required
+    @admin_required
     def create():
         p = list_payload(request.get_json(silent=True) or {})
         if not p:
@@ -499,7 +647,7 @@ def register_list_routes(kind):
         db.commit()
         return jsonify({"ok": True, "id": new_id}), 201
 
-    @login_required
+    @admin_required
     def update(item_id):
         p = list_payload(request.get_json(silent=True) or {})
         if not p:
@@ -511,14 +659,14 @@ def register_list_routes(kind):
         db.commit()
         return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
 
-    @login_required
+    @admin_required
     def delete(item_id):
         db = get_db()
         db.execute(f"DELETE FROM {table} WHERE id = ?", (item_id,))
         db.commit()
         return jsonify({"ok": True})
 
-    @login_required
+    @admin_required
     def upload_logo(item_id):
         db = get_db()
         if not db.execute(f"SELECT 1 FROM {table} WHERE id = ?", (item_id,)).fetchone():
@@ -544,7 +692,7 @@ def register_list_routes(kind):
         db.commit()
         return jsonify({"ok": True, "logo_url": f"/logos/{kind}/{item_id}?v={version}"})
 
-    @login_required
+    @admin_required
     def delete_logo(item_id):
         # Explicitly removing a logo also removes it from the permanent library.
         db = get_db()
@@ -627,7 +775,7 @@ def rate_payload(d):
 
 
 @app.post("/api/rates")
-@login_required
+@admin_required
 def api_rate_create():
     p = rate_payload(request.get_json(silent=True) or {})
     if not p:
@@ -640,7 +788,7 @@ def api_rate_create():
 
 
 @app.put("/api/rates/<int:rid>")
-@login_required
+@admin_required
 def api_rate_update(rid):
     p = rate_payload(request.get_json(silent=True) or {})
     if not p:
@@ -652,7 +800,7 @@ def api_rate_update(rid):
 
 
 @app.delete("/api/rates/<int:rid>")
-@login_required
+@admin_required
 def api_rate_delete(rid):
     db = get_db()
     db.execute("DELETE FROM rates WHERE id = ?", (rid,))
@@ -745,7 +893,7 @@ def api_settings():
                            "ORDER BY id LIMIT 1").fetchone()
     return jsonify({"usd_rate": usd["buy_rate"] if usd else num(get_setting("last_usd_rate")),
                     "last_method_id": num(get_setting("last_method_id")),
-                    "auth_type": auth_type()})
+                    "auth_type": current_user()["auth_type"], "me": current_user()})
 
 
 @app.post("/api/transactions")
@@ -755,6 +903,8 @@ def api_tx_create():
     if e:
         return err(e)
     row["created_at"] = row["updated_at"] = now_local()
+    row["created_by"] = current_user()["id"]
+    row["created_by_name"] = current_user()["name"]
     db = get_db()
     new_id = db.execute(f"INSERT INTO transactions ({', '.join(row)}) VALUES ({', '.join('?' * len(row))}) "
                         f"RETURNING id", list(row.values())).fetchone()["id"]
@@ -773,8 +923,9 @@ def api_tx_update(tid):
         return err(e)
     row["updated_at"] = now_local()
     db = get_db()
-    cur = db.execute(f"UPDATE transactions SET {', '.join(f'{k} = ?' for k in row)} WHERE id = ?",
-                     list(row.values()) + [tid])
+    scope, scope_params = own_scope()
+    cur = db.execute(f"UPDATE transactions SET {', '.join(f'{k} = ?' for k in row)} WHERE id = ?{scope}",
+                     list(row.values()) + [tid] + scope_params)
     db.commit()
     return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
 
@@ -784,13 +935,15 @@ def api_tx_update(tid):
 def api_tx_delete(tid):
     """Deleting moves the operation to the trash; it can be restored or removed for good."""
     db = get_db()
-    db.execute("UPDATE transactions SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", (now_local(), tid))
+    scope, scope_params = own_scope()
+    cur = db.execute(f"UPDATE transactions SET deleted_at = ?, deleted_by_name = ? WHERE id = ? AND deleted_at IS NULL{scope}",
+                     [now_local(), current_user()["name"], tid] + scope_params)
     db.commit()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True}) if cur.rowcount else err("not_found", 404)
 
 
 @app.get("/api/trash")
-@login_required
+@admin_required
 def api_trash():
     rows = get_db().execute("SELECT * FROM transactions WHERE deleted_at IS NOT NULL "
                             "ORDER BY deleted_at DESC, id DESC LIMIT 1000").fetchall()
@@ -798,7 +951,7 @@ def api_trash():
 
 
 @app.post("/api/trash/<int:tid>/restore")
-@login_required
+@admin_required
 def api_trash_restore(tid):
     db = get_db()
     cur = db.execute("UPDATE transactions SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL", (tid,))
@@ -807,7 +960,7 @@ def api_trash_restore(tid):
 
 
 @app.delete("/api/trash/<int:tid>")
-@login_required
+@admin_required
 def api_trash_purge(tid):
     db = get_db()
     db.execute("DELETE FROM transactions WHERE id = ? AND deleted_at IS NOT NULL", (tid,))
@@ -816,7 +969,7 @@ def api_trash_purge(tid):
 
 
 @app.delete("/api/trash")
-@login_required
+@admin_required
 def api_trash_empty():
     db = get_db()
     db.execute("DELETE FROM transactions WHERE deleted_at IS NOT NULL")
@@ -827,8 +980,19 @@ def api_trash_empty():
 KIND_SQL = {"exchange": "app_id IS NULL", "topup": "app_id IS NOT NULL"}  # exchange ops vs app top-ups
 
 
+def own_scope():
+    """Workers may only see and change their own operations."""
+    return ("", []) if is_admin() else (" AND created_by = ?", [current_user()["id"]])
+
+
 def tx_filters():
     where, params = ["deleted_at IS NULL"], []
+    if not is_admin():
+        where.append("created_by = ?")
+        params.append(current_user()["id"])
+    elif request.args.get("user_id", "").isdigit():
+        where.append("created_by = ?")
+        params.append(int(request.args["user_id"]))
     if request.args.get("kind") in KIND_SQL:
         where.append(KIND_SQL[request.args["kind"]])
     if request.args.get("from"):
@@ -845,8 +1009,8 @@ def tx_filters():
         params.append(int(request.args["app_id"]))
     q = request.args.get("q", "").strip()
     if q:
-        where.append("(customer LIKE ? OR note LIKE ? OR package LIKE ?)")
-        params += [f"%{q}%", f"%{q}%", f"%{q}%"]
+        where.append("(customer LIKE ? OR note LIKE ? OR package LIKE ? OR created_by_name LIKE ?)")
+        params += [f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"]
     return (" WHERE " + " AND ".join(where)) if where else "", params
 
 
@@ -879,7 +1043,7 @@ def api_tx_list():
 
 
 @app.get("/api/summary")
-@login_required
+@admin_required
 def api_summary():
     db = get_db()
     today = datetime.now().strftime("%Y-%m-%d")
@@ -891,6 +1055,10 @@ def api_summary():
     by_app = db.execute(
         f"SELECT app_id, app_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(usd_amount) usd, SUM(profit) profit "
         f"FROM transactions{where} GROUP BY app_id, app_name ORDER BY profit DESC", params).fetchall()
+
+    by_user = db.execute(
+        f"SELECT created_by, created_by_name, COUNT(*) n, SUM(mru_paid) mru_paid, SUM(profit) profit "
+        f"FROM transactions{where} GROUP BY created_by, created_by_name ORDER BY profit DESC", params).fetchall()
 
     start = (datetime.now() - timedelta(days=13)).strftime("%Y-%m-%d")
     per_day = {r["d"]: r["p"] for r in db.execute(
@@ -904,12 +1072,13 @@ def api_summary():
         "filtered": totals(db.execute(TOTALS_SQL + where, params).fetchone()),
         "by_method": [dict(r) for r in by_method],
         "by_app": [dict(r) for r in by_app],
+        "by_user": [dict(r) for r in by_user],
         "daily": daily,
     })
 
 
 @app.get("/api/transactions.csv")
-@login_required
+@admin_required
 def api_tx_csv():
     where, params = tx_filters()
     rows = get_db().execute(f"SELECT * FROM transactions{where} ORDER BY tx_date", params).fetchall()

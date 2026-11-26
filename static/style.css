@@ -509,3 +509,7 @@ select.input { appearance: none; -webkit-appearance: none;
 }
 .day-head:first-child { margin-top: 4px; }
 .item.trashed { opacity: .85; border-style: dashed; }
+
+/* ---- Roles: workers don't see admin-only parts ---- */
+body[data-role="worker"] .admin-only { display: none !important; }
+body[data-role="worker"] .tabs { grid-template-columns: repeat(3, 1fr); }
