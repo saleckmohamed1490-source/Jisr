@@ -571,3 +571,10 @@ body[data-role="worker"] .tabs { grid-template-columns: repeat(3, 1fr); }
   .shooter .bullet { opacity: 1; } .shooter .flash { animation: none; opacity: 1; }
 }
 .party-text { font-size: clamp(28px, 9vw, 64px); white-space: nowrap; }
+
+/* ---- Profit colours in the celebration; hiding profit from workers ---- */
+.party-sub .pos { color: #4cd08a; text-shadow: 0 0 14px rgba(76,208,138,.6); }
+.party-sub .neg { color: #ef6f61; }
+body.no-profit .profit-box, body.no-profit .tx .profit, body.no-profit .day-head b { display: none !important; }
+.profit-switch { justify-content: space-between; padding: 12px 14px; margin-bottom: 14px; border-radius: 14px;
+  background: #0f0f0f; border: 1px solid #24211b; }

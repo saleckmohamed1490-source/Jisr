@@ -893,7 +893,35 @@ def api_settings():
                            "ORDER BY id LIMIT 1").fetchone()
     return jsonify({"usd_rate": usd["buy_rate"] if usd else num(get_setting("last_usd_rate")),
                     "last_method_id": num(get_setting("last_method_id")),
-                    "auth_type": current_user()["auth_type"], "me": current_user()})
+                    "auth_type": current_user()["auth_type"], "me": current_user(),
+                    "workers_see_profit": workers_see_profit()})
+
+
+def workers_see_profit():
+    return get_setting("workers_see_profit") == "1"
+
+
+def can_see_profit():
+    """Admins always; workers only when the admin allows it."""
+    return is_admin() or workers_see_profit()
+
+
+def strip_profit(d):
+    """Remove profit figures from an operation sent to a worker who may not see them."""
+    if not can_see_profit():
+        for k in ("profit", "cost_mru"):
+            d.pop(k, None)
+    return d
+
+
+@app.post("/api/settings/workers-profit")
+@admin_required
+def api_workers_profit():
+    on = bool((request.get_json(silent=True) or {}).get("on"))
+    db = get_db()
+    set_setting(db, "workers_see_profit", "1" if on else "0")
+    db.commit()
+    return jsonify({"ok": True, "workers_see_profit": on})
 
 
 @app.post("/api/transactions")
@@ -912,7 +940,7 @@ def api_tx_create():
         set_setting(db, "last_usd_rate", row["usd_rate"])
     set_setting(db, "last_method_id", row["method_id"])
     db.commit()
-    return jsonify({"ok": True, "id": new_id, "profit": row["profit"]}), 201
+    return jsonify(strip_profit({"ok": True, "id": new_id, "profit": row["profit"]})), 201
 
 
 @app.put("/api/transactions/<int:tid>")
@@ -1039,7 +1067,7 @@ def api_tx_list():
     limit = min(int(num(request.args.get("limit")) or 500), 5000)
     rows = get_db().execute(f"SELECT * FROM transactions{where} ORDER BY tx_date DESC, id DESC LIMIT ?",
                             params + [limit]).fetchall()
-    return jsonify([dict(r) for r in rows])
+    return jsonify([strip_profit(dict(r)) for r in rows])
 
 
 @app.get("/api/summary")

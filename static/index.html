@@ -357,7 +357,11 @@
 
       <div class="card admin-only" id="users-card" style="margin-bottom:24px">
         <h3>👥 العمّال والحسابات</h3>
-        <p class="muted small" style="margin-top:0">العامل يسجّل العمليات ويرى عملياته فقط، ولا يرى التقارير والأرباح والإعدادات والسلة.</p>
+        <p class="muted small" style="margin-top:0">العامل يسجّل العمليات ويرى عملياته فقط، ولا يرى التقارير والإعدادات والسلة.</p>
+        <label class="check profit-switch">
+          <span>💰 إظهار الربح للعمّال<small class="muted" style="display:block;font-weight:500">في النماذج وقوائمهم وشاشة الاحتفال</small></span>
+          <input type="checkbox" id="workers-profit">
+        </label>
         <div id="users-list"></div>
         <form id="user-form" novalidate style="margin-top:14px">
           <div class="two">
@@ -579,12 +583,17 @@ $("pass-toggle").addEventListener("click", e => {
 
 let settings = {}, me = {};
 const isAdmin = () => me.role === "admin";
+const canSeeProfit = () => isAdmin() || !!settings.workers_see_profit;
+// Workers don't see any profit figures unless the admin allows it
+function applyProfitVisibility() { document.body.classList.toggle("no-profit", !canSeeProfit()); }
 async function enterApp() {
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden"); $("settings-btn").classList.remove("hidden");
   [settings] = await Promise.all([api("/api/settings"), loadLists(), loadRates()]);
   me = settings.me || {};
   document.body.dataset.role = me.role || "worker";   // CSS hides .admin-only for workers
   if (isAdmin()) loadUsers().catch(() => {});
+  applyProfitVisibility();
+  $("workers-profit").checked = !!settings.workers_see_profit;
   resetForm(); resetCalc();
   // /admin opens on the settings page (apps, payment methods, trash, workers, account) for admins
   switchTab(isAdmin() && location.pathname.replace(/\/+$/, "") === "/admin" ? "methods" : "home");
@@ -718,6 +727,13 @@ $("logo-file").addEventListener("change", async () => {
 });
 
 // ---------------------------------------------------------------- workers & accounts (admin)
+$("workers-profit").addEventListener("change", async e => {
+  try {
+    const r = await api("/api/settings/workers-profit", { method: "POST", body: { on: e.target.checked } });
+    settings.workers_see_profit = r.workers_see_profit;
+    toast(r.workers_see_profit ? "العمّال يرون الربح الآن" : "الربح مخفي عن العمّال");
+  } catch (ex) { e.target.checked = !e.target.checked; toast(ex.message); }
+});
 let users = [];
 const roleName = r => r === "admin" ? "مسؤول" : "عامل";
 async function loadUsers() {
@@ -1519,7 +1535,9 @@ function shotSounds(count, gap) {
 }
 function celebrate(profit) {
   const el = $("party");
-  $("party-sub").textContent = isAdmin() && profit != null ? `الربح ${signed(profit)} أوقية` : "تم حفظ العملية ✅";
+  $("party-sub").innerHTML = canSeeProfit() && profit != null
+    ? `الربح <span class="${profit < 0 ? "neg" : "pos"}"><bdi>${signed(profit)}</bdi> أوقية</span>`
+    : "تم حفظ العملية ✅";
   $("party-fire").innerHTML = Array.from({ length: 16 }, () =>
     `<span style="left:${Math.random() * 100}%;animation-delay:${(Math.random() * 1.2).toFixed(2)}s;font-size:${22 + Math.random() * 26}px">🔥</span>`).join("");
   el.classList.remove("hidden", "go"); void el.offsetWidth; el.classList.add("go");
