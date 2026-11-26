@@ -101,3 +101,16 @@ DO $$ BEGIN
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA jisr TO jisr_app;
   END IF;
 END $$;
+
+-- v6: permanent logo library (kept when items, accounts or data are deleted)
+CREATE TABLE IF NOT EXISTS jisr.logo_library (
+    key TEXT PRIMARY KEY,
+    logo BYTEA NOT NULL,
+    version TEXT NOT NULL
+);
+REVOKE ALL ON jisr.logo_library FROM anon, authenticated;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'jisr_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON jisr.logo_library TO jisr_app;
+  END IF;
+END $$;

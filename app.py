@@ -211,6 +211,11 @@ def init_db():
         updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(tx_date DESC);
+    CREATE TABLE IF NOT EXISTS logo_library (
+        key TEXT PRIMARY KEY,           -- "<kind>:<normalised name>", e.g. "methods:بنكيلي"
+        logo BLOB NOT NULL,
+        version TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS apps (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -424,9 +429,36 @@ LISTS = {
 }
 
 
-def list_item_json(kind, r):
+# Permanent logo library: every uploaded logo is also kept here by kind + name, and is
+# never cleared by deleting items, accounts or data. An item without its own logo shows
+# the library logo for its name, so logos survive resets and re-created items.
+def logo_key(kind, name):
+    return f"{kind}:{' '.join(str(name).split()).lower()}"
+
+
+# Logos shipped with the app itself: shown even if the database is wiped.
+BUILTIN_LOGOS = {
+    "methods:بنكيلي": "bankily.png",
+    "methods:سداد": "sedad.png",
+    "methods:مصريفي": "masrivi.png",
+}
+BUILTIN_DIR = STATIC_DIR / "builtin-logos"
+
+
+def library_versions(kind):
+    rows = get_db().execute("SELECT key, version FROM logo_library WHERE key LIKE ?", (kind + ":%",)).fetchall()
+    out = {k: "builtin" for k in BUILTIN_LOGOS if k.startswith(kind + ":")}
+    out.update({r["key"]: r["version"] for r in rows})
+    return out
+
+
+def list_item_json(kind, r, lib=None):
     d = dict(r)
-    d["logo_url"] = f"/logos/{kind}/{r['id']}?v={r['logo_version']}" if r["logo_version"] else None
+    if r["logo_version"]:
+        d["logo_url"] = f"/logos/{kind}/{r['id']}?v={r['logo_version']}"
+    else:
+        v = (lib or {}).get(logo_key(kind, r["name"]))
+        d["logo_url"] = f"/logos/{kind}/{r['id']}?v=lib-{v}" if v else None
     return d
 
 
@@ -451,7 +483,8 @@ def register_list_routes(kind):
     @login_required
     def list_all():
         rows = get_db().execute(f"SELECT {LIST_COLS} FROM {table} ORDER BY sort_order, id").fetchall()
-        return jsonify([list_item_json(kind, r) for r in rows])
+        lib = library_versions(kind)
+        return jsonify([list_item_json(kind, r, lib) for r in rows])
 
     @login_required
     def create():
@@ -502,13 +535,21 @@ def register_list_routes(kind):
         img.save(buf, "PNG", optimize=True)
         version = uuid.uuid4().hex[:12]
         db.execute(f"UPDATE {table} SET logo = ?, logo_version = ? WHERE id = ?", (buf.getvalue(), version, item_id))
+        name = db.execute(f"SELECT name FROM {table} WHERE id = ?", (item_id,)).fetchone()["name"]
+        db.execute("INSERT INTO logo_library (key, logo, version) VALUES (?, ?, ?) "
+                   "ON CONFLICT(key) DO UPDATE SET logo = excluded.logo, version = excluded.version",
+                   (logo_key(kind, name), buf.getvalue(), version))
         db.commit()
         return jsonify({"ok": True, "logo_url": f"/logos/{kind}/{item_id}?v={version}"})
 
     @login_required
     def delete_logo(item_id):
+        # Explicitly removing a logo also removes it from the permanent library.
         db = get_db()
+        row = db.execute(f"SELECT name FROM {table} WHERE id = ?", (item_id,)).fetchone()
         db.execute(f"UPDATE {table} SET logo = NULL, logo_version = NULL WHERE id = ?", (item_id,))
+        if row:
+            db.execute("DELETE FROM logo_library WHERE key = ?", (logo_key(kind, row["name"]),))
         db.commit()
         return jsonify({"ok": True})
 
@@ -529,10 +570,20 @@ for _kind in LISTS:
 def logo_file(kind, item_id):
     if kind not in LISTS:
         abort(404)
-    row = get_db().execute(f"SELECT logo FROM {LISTS[kind][0]} WHERE id = ?", (item_id,)).fetchone()
-    if not row or not row["logo"]:
+    db = get_db()
+    row = db.execute(f"SELECT name, logo FROM {LISTS[kind][0]} WHERE id = ?", (item_id,)).fetchone()
+    if not row:
         abort(404)
-    resp = Response(bytes(row["logo"]), mimetype="image/png")
+    data = row["logo"]
+    if not data:   # fall back to the permanent library logo for this name, then the built-in one
+        key = logo_key(kind, row["name"])
+        lib = db.execute("SELECT logo FROM logo_library WHERE key = ?", (key,)).fetchone()
+        data = lib["logo"] if lib else None
+        if not data and key in BUILTIN_LOGOS:
+            data = (BUILTIN_DIR / BUILTIN_LOGOS[key]).read_bytes()
+    if not data:
+        abort(404)
+    resp = Response(bytes(data), mimetype="image/png")
     resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # URL carries ?v=
     return resp
 
