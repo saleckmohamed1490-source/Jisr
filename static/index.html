@@ -404,6 +404,7 @@
           <input type="checkbox" id="party-sound">
         </label>
         <button type="button" class="btn ghost block" id="party-test" style="margin-top:12px">جرّب شاشة الاحتفال 🔥</button>
+        <button type="button" class="btn ghost block admin-only" id="shot-test" style="margin-top:8px">جرّب ما يراه العامل عند الحفظ 🔫</button>
         <button type="button" class="btn ghost block admin-only" id="weylk-test" style="margin-top:8px">جرّب ما يراه العامل عند الحذف ⚠️</button>
       </div>
 
@@ -425,6 +426,42 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- Worker save: a gunman fires toward the phone; Salek jumps in, catches it: "NAR w t3mar 🔥🔥🔥" -->
+<div class="shot hidden" id="shot" role="dialog" aria-label="NAR w t3mar">
+  <div class="shot-stage">
+    <svg class="shot-gunman" viewBox="0 0 200 230" aria-hidden="true">
+      <circle cx="100" cy="52" r="26" fill="#1b1b1b"/>
+      <rect x="80" y="44" width="40" height="11" rx="5" fill="#c98f63"/>
+      <circle cx="91" cy="49" r="3" fill="#fff"/><circle cx="109" cy="49" r="3" fill="#fff"/>
+      <path d="M100 80c-30 0-46 20-46 50v60h92v-60c0-30-16-50-46-50z" fill="#161616" stroke="#7a0f0f" stroke-width="4"/>
+      <path d="M66 118l30 26M134 118l-30 26" stroke="#161616" stroke-width="16" stroke-linecap="round"/>
+      <rect x="84" y="128" width="32" height="30" rx="6" fill="#9e9e9e" stroke="#111" stroke-width="3"/>
+      <circle cx="100" cy="140" r="9" fill="#050505" stroke="#555" stroke-width="2"/>
+      <path d="M60 190l-6 36h30l16-24 16 24h30l-6-36z" fill="#222"/>
+    </svg>
+    <div class="shot-flash"></div>
+    <div class="shot-bullet"></div>
+    <div class="shot-salek">
+      <div class="shot-name">السالك</div>
+      <div class="shot-bubble">NAR w t3mar 🔥🔥🔥</div>
+      <svg viewBox="0 0 240 260" aria-hidden="true">
+        <path d="M120 120c-40 0-64 26-64 66v74h128v-74c0-40-24-66-64-66z" fill="#0a0a0a" stroke="#d4af37" stroke-width="5"/>
+        <path d="M120 122l-10 40 10 12 10-12z" fill="#d4af37"/>
+        <path d="M160 150l40-60" stroke="#0a0a0a" stroke-width="22" stroke-linecap="round"/>
+        <path d="M160 150l40-60" stroke="#d4af37" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+        <circle id="salek-hand" cx="203" cy="80" r="15" fill="#e9b98c" stroke="#d4af37" stroke-width="3"/>
+        <circle cx="120" cy="78" r="38" fill="#e9b98c"/>
+        <path d="M80 64c4-34 76-34 80 0z" fill="#d4af37"/>
+        <rect x="76" y="58" width="88" height="10" rx="5" fill="#b8962c"/>
+        <rect x="90" y="72" width="60" height="14" rx="7" fill="#050505"/>
+        <path d="M100 96q20 14 40 0" stroke="#5a1d1d" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="shot-sub" id="shot-sub"></div>
+  </div>
+  <div class="party-fire" id="shot-fire"></div>
 </div>
 
 <!-- Worker delete warning: can't be dismissed for 5 seconds -->
@@ -854,6 +891,7 @@ $("user-form").addEventListener("submit", async e => {
 $("party-sound").checked = soundOn();
 $("party-sound").addEventListener("change", e => { try { localStorage.setItem("jisr_party_sound", e.target.checked ? "on" : "off"); } catch (_) {} });
 $("party-test").addEventListener("click", () => celebrate(isAdmin() ? 25 : null));
+$("shot-test").addEventListener("click", () => playShot(25));
 $("weylk-test").addEventListener("click", async () => { if (await warnDelete()) playWeylk(); });
 
 // ---------------------------------------------------------------- account (PIN)
@@ -1256,7 +1294,7 @@ $("calc-save").addEventListener("click", async () => {
   const btn = $("calc-save"); btn.disabled = true;
   try {
     if (editingCalc) { await api(`/api/transactions/${editingCalc}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
-    else { const res = await api("/api/transactions", { method: "POST", body }); celebrate(res.profit); }
+    else { const res = await api("/api/transactions", { method: "POST", body }); saveScene(res.profit); }
     resetCalc(); loadHome();
   } catch (ex) { fail(ex.message); }
   finally { btn.disabled = false; }
@@ -1339,7 +1377,7 @@ $("tx-form").addEventListener("submit", async e => {
     if (editingTx) { await api(`/api/transactions/${editingTx}`, { method: "PUT", body }); toast("تم حفظ التعديل"); }
     else {
       const res = await api("/api/transactions", { method: "POST", body });
-      celebrate(res.profit);
+      saveScene(res.profit);
       settings = await api("/api/settings");
     }
     resetForm(); loadHome();
@@ -1588,21 +1626,41 @@ async function loadList() {
 // ---------------------------------------------------------------- celebration ("NAR W T3MAR 🔥")
 let partyTimer;
 function soundOn() { try { return localStorage.getItem("jisr_party_sound") !== "off"; } catch (_) { return true; } }
-function shotSounds(count, gap) {
+// iOS: let sounds play even with the silent switch (Safari 17+), and unlock audio on the first touch,
+// because the save sound starts after the server answers (outside the tap itself).
+try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (_) {}
+function audioCtx() {
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+  const ctx = celebrate.ctx || (celebrate.ctx = new AC());
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+["pointerdown", "touchend", "keydown"].forEach(ev => document.addEventListener(ev, () => {
+  const ctx = audioCtx(); if (!ctx || ctx.unlocked) return;
+  const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource(); src.buffer = b; src.connect(ctx.destination); src.start(0);
+  ctx.unlocked = true;
+}, { passive: true }));
+// A gunshot: sharp crack + low boom + short tail
+function bang(delay = 0) {
   try {
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ctx = celebrate.ctx || (celebrate.ctx = new AC());
-    if (ctx.state === "suspended") ctx.resume();
-    const len = Math.floor(ctx.sampleRate * 0.18), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-    for (let k = 0; k < count; k++) {
-      const t = ctx.currentTime + k * gap, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-      src.buffer = buf; f.type = "lowpass"; f.frequency.value = 1800;
-      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      src.connect(f).connect(g).connect(ctx.destination); src.start(t);
-    }
+    const ctx = audioCtx(); if (!ctx) return;
+    const t = ctx.currentTime + delay, sr = ctx.sampleRate;
+    const noise = (sec, pow) => { const n = Math.floor(sr * sec), b = ctx.createBuffer(1, n, sr), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, pow); return b; };
+    const out = ctx.createDynamicsCompressor(); out.connect(ctx.destination);
+    const crack = ctx.createBufferSource(), hp = ctx.createBiquadFilter(), cg = ctx.createGain();
+    crack.buffer = noise(0.09, 4); hp.type = "highpass"; hp.frequency.value = 900; cg.gain.setValueAtTime(1.6, t);
+    crack.connect(hp).connect(cg).connect(out); crack.start(t);
+    const boom = ctx.createOscillator(), bg = ctx.createGain();
+    boom.type = "sine"; boom.frequency.setValueAtTime(140, t); boom.frequency.exponentialRampToValueAtTime(38, t + 0.3);
+    bg.gain.setValueAtTime(1.4, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    boom.connect(bg).connect(out); boom.start(t); boom.stop(t + 0.45);
+    const tail = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), tg = ctx.createGain();
+    tail.buffer = noise(0.6, 2.5); lp.type = "lowpass"; lp.frequency.value = 1400; tg.gain.setValueAtTime(0.7, t + 0.02);
+    tail.connect(lp).connect(tg).connect(out); tail.start(t + 0.02);
   } catch (_) {}
 }
+function shotSounds(count, gap) { for (let k = 0; k < count; k++) bang(k * gap); }
 function celebrate(profit) {
   const el = $("party");
   $("party-sub").innerHTML = canSeeProfit() && profit != null
@@ -1617,6 +1675,30 @@ function celebrate(profit) {
 }
 function closeParty() { $("party").classList.add("hidden"); $("party").classList.remove("go"); }
 $("party").addEventListener("click", closeParty);
+
+// ---------------------------------------------------------------- worker save scene: shot toward the phone
+let shotTimer;
+function saveScene(profit) { isAdmin() ? celebrate(profit) : playShot(profit); }
+function playShot(profit) {
+  const el = $("shot");
+  $("shot-sub").innerHTML = canSeeProfit() && profit != null
+    ? `الربح <span class="${profit < 0 ? "neg" : "pos"}"><bdi>${signed(profit)}</bdi> أوقية</span>` : "تم حفظ العملية ✅";
+  $("shot-fire").innerHTML = Array.from({ length: 14 }, () =>
+    `<span style="left:${Math.random() * 100}%;animation-delay:${(1.7 + Math.random() * 1.2).toFixed(2)}s;font-size:${22 + Math.random() * 24}px">🔥</span>`).join("");
+  el.classList.remove("hidden", "go"); void el.offsetWidth;
+  // where the bullet must end: Salek's raised hand once he has jumped in (he starts 110% lower)
+  const bullet = el.querySelector(".shot-bullet"), b = bullet.getBoundingClientRect();
+  const hand = $("salek-hand").getBoundingClientRect(), salek = el.querySelector(".shot-salek").getBoundingClientRect();
+  bullet.style.setProperty("--tx", `${hand.left + hand.width / 2 - (b.left + b.width / 2)}px`);
+  bullet.style.setProperty("--ty", `${hand.top + hand.height / 2 - salek.height * 1.1 - (b.top + b.height / 2)}px`);
+  el.classList.add("go");
+  if (soundOn()) { bang(0.6); setTimeout(catchSound, 1850); }
+  if (navigator.vibrate) setTimeout(() => navigator.vibrate([80, 60, 40]), 600);
+  el.dataset.closable = ""; setTimeout(() => { el.dataset.closable = "1"; }, 1800);
+  clearTimeout(shotTimer); shotTimer = setTimeout(closeShot, 4800);
+}
+function closeShot() { $("shot").classList.add("hidden"); $("shot").classList.remove("go"); }
+$("shot").addEventListener("click", () => { if ($("shot").dataset.closable) closeShot(); });
 
 // ---------------------------------------------------------------- worker delete warning + WEYLK scene
 function warnDelete() {

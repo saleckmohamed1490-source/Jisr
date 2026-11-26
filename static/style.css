@@ -627,3 +627,46 @@ body.no-profit .profit-box, body.no-profit .tx .profit, body.no-profit .day-head
   .weylk.go *, .weylk.go .weylk-title { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
 .weylk { background: radial-gradient(70% 55% at 50% 45%, rgba(140,10,10,.5), transparent 70%), #080808; }
+
+/* =====================================================================
+   Worker save scene: a shot toward the phone, Salek catches the bullet
+   ===================================================================== */
+.shot { position: fixed; inset: 0; z-index: 104; overflow: hidden; cursor: pointer;
+  background: radial-gradient(60% 50% at 50% 35%, rgba(212,175,55,.18), transparent 70%), #070707; }
+.shot-stage { position: relative; width: min(100vw, 520px); height: 100%; margin: 0 auto; }
+.shot-gunman { position: absolute; left: 50%; top: 9%; width: 44%; transform: translateX(-50%); }
+.shot-flash { position: absolute; left: 50%; top: 31%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffe066 30%, rgba(255,120,0,.6) 55%, transparent 70%); opacity: 0; }
+.shot-bullet { position: absolute; left: 50%; top: 31%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c8 0%, #e8c25a 30%, #a8821c 70%, #5a4310 100%);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.4), 0 0 25px rgba(255,190,60,.6); opacity: 0; }
+.shot-salek { position: absolute; left: 50%; bottom: -2%; width: 78%; transform: translate(-50%, 110%); text-align: center; }
+.shot-salek svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 -10px 30px rgba(212,175,55,.35)); }
+.shot-name { font-size: clamp(28px, 9vw, 46px); font-weight: 900; color: #d4af37; text-shadow: 0 0 16px rgba(212,175,55,.6), 2px 2px 0 #000; }
+.shot-bubble { position: absolute; left: -4%; top: 12%; direction: ltr; padding: 10px 16px; border-radius: 18px 18px 18px 4px;
+  background: #fff; color: #111; font-size: clamp(18px, 5.6vw, 28px); font-weight: 900; white-space: nowrap;
+  box-shadow: 0 6px 24px rgba(0,0,0,.5); opacity: 0; transform: scale(.3); transform-origin: left bottom; }
+.shot-sub { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-size: 22px; font-weight: 800; color: #fff;
+  text-shadow: 0 2px 10px #000; opacity: 0; }
+.shot-sub .pos { color: #4cd08a; text-shadow: 0 0 14px rgba(76,208,138,.6); } .shot-sub .neg { color: #ef6f61; }
+
+.shot.go { animation: partyIn .2s ease-out, shake .3s linear .6s 2; }
+.shot.go .shot-gunman { animation: aimIn .6s ease-out both; }
+@keyframes aimIn { from { transform: translateX(-50%) scale(.7); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+.shot.go .shot-flash { animation: muzzle .3s ease-out .6s both; }
+@keyframes muzzle { 0% { opacity: 1; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.6); } }
+/* the bullet grows as it comes at the screen, then Salek catches it in his raised hand */
+.shot.go .shot-bullet { animation: incoming 1.2s cubic-bezier(.5,0,.9,.5) .6s both, caught .3s ease-out 1.8s forwards; }
+@keyframes incoming { 0% { opacity: 1; transform: scale(.15); } 100% { opacity: 1; transform: scale(5.5); filter: blur(1px); } }
+@keyframes caught { from { opacity: 1; transform: scale(5.5); } to { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(.9); } }
+.shot.go .shot-salek { animation: jumpIn .5s cubic-bezier(.3,1.5,.5,1) 1.3s forwards; }
+@keyframes jumpIn { to { transform: translate(-50%, 0); } }
+.shot.go .shot-bubble { animation: bubble .4s cubic-bezier(.2,1.6,.4,1) 2s forwards; }
+@keyframes bubble { to { opacity: 1; transform: scale(1); } }
+.shot.go .shot-sub { animation: fadeUp .4s ease 2.3s forwards; }
+.shot .party-fire span { bottom: -40px; }
+@media (prefers-reduced-motion: reduce) { .shot.go * { animation-duration: .01s !important; animation-delay: 0s !important; } }
+.shot-salek { z-index: 2; }
+.shot-bullet { z-index: 3; }
+.shot-sub { top: 2.5%; z-index: 3; }
+.shot .party-fire span { animation-fill-mode: backwards; }
