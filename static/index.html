@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#00704a">
-<title>Rimal Transfer</title>
+<meta name="theme-color" content="#0a0a0a">
+<title>MINASSA EXCHANGE</title>
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="MINASSA EXCHANGE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -15,9 +18,9 @@
 <div class="wrap">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">R</div>
+      <img class="brand-logo" src="/static/logo.svg" alt="" width="40" height="40">
       <div>
-        <div class="brand-name">Rimal Transfer</div>
+        <div class="brand-name">MINASSA EXCHANGE</div>
         <div class="brand-tag">دفتر المعاملات والأرباح</div>
       </div>
     </div>
@@ -590,15 +593,15 @@ const isCfa = r => ["XOF", "XAF"].includes(r.code) || /cfa/i.test(r.name) || /cf
 
 // Texts of the PDF sheet in each language.
 const SHEET = {
-  ar: { rtl: true, brand: "Rimal Transfer", title: "أسعار الصرف اليوم", cols: ["العملة", "الشراء", "البيع"], mru: "أوقية",
+  ar: { rtl: true, brand: "MINASSA EXCHANGE", title: "أسعار الصرف اليوم", cols: ["العملة", "الشراء", "البيع"], mru: "أوقية",
         per100: "لكل 100 أوقية", perUnit: c => `لكل \u20661 ${c}\u2069`, forN: (n, c) => `مقابل \u2066${n} ${c}\u2069`,
-        footer: "الأسعار قابلة للتغيير · Rimal Transfer", locale: "ar-u-nu-latn", share: "أسعار الصرف" },
-  fr: { rtl: false, brand: "Rimal Transfer", title: "Taux de change du jour", cols: ["Devise", "Achat", "Vente"], mru: "MRU",
+        footer: "الأسعار قابلة للتغيير · MINASSA EXCHANGE", locale: "ar-u-nu-latn", share: "أسعار الصرف" },
+  fr: { rtl: false, brand: "MINASSA EXCHANGE", title: "Taux de change du jour", cols: ["Devise", "Achat", "Vente"], mru: "MRU",
         per100: "pour 100 MRU", perUnit: c => `pour 1 ${c}`, forN: (n, c) => `pour ${n} ${c}`,
-        footer: "Taux susceptibles de changer · Rimal Transfer", locale: "fr-FR", share: "Taux de change" },
-  en: { rtl: false, brand: "Rimal Transfer", title: "Today's exchange rates", cols: ["Currency", "Buy", "Sell"], mru: "MRU",
+        footer: "Taux susceptibles de changer · MINASSA EXCHANGE", locale: "fr-FR", share: "Taux de change" },
+  en: { rtl: false, brand: "MINASSA EXCHANGE", title: "Today's exchange rates", cols: ["Currency", "Buy", "Sell"], mru: "MRU",
         per100: "per 100 MRU", perUnit: c => `per 1 ${c}`, forN: (n, c) => `for ${n} ${c}`,
-        footer: "Rates subject to change · Rimal Transfer", locale: "en-GB", share: "Exchange rates" },
+        footer: "Rates subject to change · MINASSA EXCHANGE", locale: "en-GB", share: "Exchange rates" },
 };
 let pdfLang = "ar";
 try { if (SHEET[localStorage.getItem("jisr_pdf_lang")]) pdfLang = localStorage.getItem("jisr_pdf_lang"); } catch (_) {}
@@ -648,32 +651,43 @@ async function drawRatesSheet(list, lang) {
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
 
   // Header band
-  ctx.fillStyle = "#00704a"; ctx.fillRect(0, 0, W, HEAD - 60);
-  ctx.fillStyle = "#d4a017"; ctx.fillRect(0, HEAD - 60, W, 8);
-  ctx.fillStyle = "#ffffff"; ctx.textAlign = START;
-  let brandSize = 92;
-  do { ctx.font = `800 ${brandSize}px ${FONT}`; } while (ctx.measureText(T.brand).width > W * 0.55 && --brandSize > 50);
-  ctx.fillText(T.brand, X(W - PAD), 140);
-  ctx.font = `700 52px ${FONT}`; ctx.fillText(T.title, X(W - PAD), 220);
+  ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, W, HEAD - 60);
+  ctx.fillStyle = "#d4af37"; ctx.fillRect(0, HEAD - 60, W, 10);
+  // logo at the start edge, brand + title next to it
+  const LOGO = 150, textStart = W - PAD - LOGO - 30;
+  try {
+    const img = new Image(); img.src = "/static/logo.svg"; await img.decode();
+    ctx.drawImage(img, rtl ? W - PAD - LOGO : PAD, 60, LOGO, LOGO);
+  } catch (_) {}
   const now = new Date();
   const day = now.toLocaleDateString(T.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const time = now.toLocaleTimeString(T.locale, { hour: "2-digit", minute: "2-digit" });
+  ctx.font = `500 38px ${FONT}`;
+  const dateW = Math.max(ctx.measureText(day).width, ctx.measureText(time).width);
+  const room = textStart - PAD - dateW - 40;            // space between the logo side and the date
+  ctx.textAlign = START;
+  let brandSize = 84;
+  do { ctx.font = `800 ${brandSize}px ${FONT}`; } while (ctx.measureText(T.brand).width > room && --brandSize > 36);
+  ctx.fillStyle = "#d4af37"; ctx.fillText(T.brand, X(textStart), 135);
+  let titleSize = 46;
+  do { ctx.font = `700 ${titleSize}px ${FONT}`; } while (ctx.measureText(T.title).width > room && --titleSize > 30);
+  ctx.fillStyle = "#ffffff"; ctx.fillText(T.title, X(textStart), 205);
   ctx.textAlign = END; ctx.font = `500 38px ${FONT}`; ctx.fillStyle = "rgba(255,255,255,.9)";
   ctx.fillText(day, X(PAD), 140); ctx.fillText(time, X(PAD), 200);
 
   // Column titles
   const colBuy = X(W * 0.47), colSell = X(W * 0.22);   // centers of the price columns
   let y = HEAD + 50;
-  ctx.fillStyle = "#5b6b62"; ctx.font = `700 34px ${FONT}`;
+  ctx.fillStyle = "#6b6455"; ctx.font = `700 34px ${FONT}`;
   ctx.textAlign = START; ctx.fillText(T.cols[0], X(W - PAD - 20), y);
   ctx.textAlign = "center"; ctx.fillText(T.cols[1], colBuy, y); ctx.fillText(T.cols[2], colSell, y);
   y += 40;
 
   for (const r of list) {
-    ctx.fillStyle = "#f1f5f2"; roundRect(ctx, PAD, y, W - 2 * PAD, ROW, 28); ctx.fill();
+    ctx.fillStyle = "#f7f3e8"; roundRect(ctx, PAD, y, W - 2 * PAD, ROW, 28); ctx.fill();
     const mid = y + ROW / 2;
     // currency: flag + name + code
-    ctx.textAlign = START; ctx.fillStyle = "#13201a";
+    ctx.textAlign = START; ctx.fillStyle = "#111111";
     let x = W - PAD - 34;
     if (r.flag) { ctx.font = `64px ${FONT}`; ctx.fillText(r.flag, X(x), mid + 22); x -= 92; }
     const name = sheetName(r, lang);
@@ -682,24 +696,24 @@ async function drawRatesSheet(list, lang) {
     if (name === r.code) { ctx.fillText(name, X(x), mid + 16); }   // no separate code line when the name is the code
     else {
       ctx.fillText(name, X(x), mid - 2);
-      ctx.font = `500 30px ${FONT}`; ctx.fillStyle = "#5b6b62"; ctx.fillText(r.code, X(x), mid + 44);
+      ctx.font = `500 30px ${FONT}`; ctx.fillStyle = "#6b6455"; ctx.fillText(r.code, X(x), mid + 44);
     }
     // prices — CFA: sell only; dollar-route currencies have no buy price of their own.
     const buy = (!isCfa(r) && (costMode(r) === "direct" || isUsdRow(r))) ? priceParts(r, r.buy_rate, T) : null;
     const sell = priceParts(r, r.sell_rate, T);
-    for (const [cx, part, color] of [[colBuy, buy, "#13201a"], [colSell, sell, "#00704a"]]) {
+    for (const [cx, part, color] of [[colBuy, buy, "#111111"], [colSell, sell, "#8c6d12"]]) {
       ctx.textAlign = "center";
-      if (!part) { ctx.fillStyle = "#9aaba1"; ctx.font = `700 48px ${FONT}`; ctx.fillText("—", cx, mid + 16); continue; }
+      if (!part) { ctx.fillStyle = "#a89f88"; ctx.font = `700 48px ${FONT}`; ctx.fillText("—", cx, mid + 16); continue; }
       let size = 50;                                   // shrink long numbers to fit the column
       do { ctx.font = `800 ${size}px ${FONT}`; } while (ctx.measureText(part.big).width > 270 && --size > 26);
       ctx.fillStyle = color; ctx.fillText(part.big, cx, mid + 6);
-      ctx.fillStyle = "#5b6b62"; ctx.font = `500 28px ${FONT}`; ctx.fillText(part.small, cx, mid + 52);
+      ctx.fillStyle = "#6b6455"; ctx.font = `500 28px ${FONT}`; ctx.fillText(part.small, cx, mid + 52);
     }
     y += ROW + 22;
   }
 
   // Footer
-  ctx.textAlign = "center"; ctx.fillStyle = "#9aaba1"; ctx.font = `500 30px ${FONT}`;
+  ctx.textAlign = "center"; ctx.fillStyle = "#a89f88"; ctx.font = `500 30px ${FONT}`;
   ctx.fillText(T.footer, W / 2, H - 70);
   return c;
 }
@@ -713,7 +727,7 @@ $("pdf-rates").addEventListener("click", async () => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width, canvas.height], hotfixes: ["px_scaling"] });
     pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, canvas.width, canvas.height);
-    const name = `rimal-transfer-rates-${pdfLang}-${localDate()}.pdf`;
+    const name = `minassa-exchange-rates-${pdfLang}-${localDate()}.pdf`;
     const file = new File([pdf.output("blob")], name, { type: "application/pdf" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: SHEET[pdfLang].share }); }

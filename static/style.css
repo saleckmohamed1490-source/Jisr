@@ -1,45 +1,24 @@
 :root {
-  --bg: #f4f6f3;
-  --surface: #ffffff;
-  --surface-2: #eef2ee;
-  --text: #13201a;
-  --muted: #5b6b62;
-  --border: #dbe3dd;
-  --primary: #00704a;
-  --primary-ink: #ffffff;
-  --primary-soft: #e1f2ea;
-  --accent: #d4a017;
-  --danger: #c0392b;
-  --danger-soft: #fbe9e7;
-  --warn: #b7791f;
-  --warn-soft: #fdf3e1;
-  --ok: #1e8a4c;
-  --ok-soft: #e3f4ea;
+  /* MINASSA EXCHANGE: black & gold */
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1f1d18;
+  --text: #f4efe1;
+  --muted: #a89f88;
+  --border: #2e2a20;
+  --primary: #d4af37;
+  --primary-ink: #0a0a0a;
+  --primary-soft: #2b2412;
+  --accent: #f1d77a;
+  --danger: #ef6f61;
+  --danger-soft: #3a1e1b;
+  --warn: #e8b04a;
+  --warn-soft: #3a2d16;
+  --ok: #4cd08a;
+  --ok-soft: #173426;
   --radius: 16px;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1512;
-    --surface: #16201b;
-    --surface-2: #1d2a23;
-    --text: #e8efe9;
-    --muted: #9aaba1;
-    --border: #2a3a31;
-    --primary: #2fbf83;
-    --primary-ink: #04140c;
-    --primary-soft: #183326;
-    --accent: #e8b931;
-    --danger: #ef6f61;
-    --danger-soft: #3a1e1b;
-    --warn: #e8b04a;
-    --warn-soft: #3a2d16;
-    --ok: #4cd08a;
-    --ok-soft: #173426;
-    --shadow: 0 1px 2px rgba(0,0,0,.3);
-    color-scheme: dark;
-  }
+  --shadow: 0 1px 2px rgba(0,0,0,.4);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -350,3 +329,4 @@ h3 { font-size: 16px; }
 .input.big-num { font-size: 20px; font-weight: 800; }
 .cost-tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--muted);
   background: var(--surface-2); border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
+.brand-logo { width: 40px; height: 40px; border-radius: 12px; display: block; flex: none; }

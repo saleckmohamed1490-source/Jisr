@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MINASSA EXCHANGE">
+  <rect width="64" height="64" rx="16" fill="#0a0a0a"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#d4af37" stroke-opacity=".55" stroke-width="2"/>
+  <!-- exchange arrows -->
+  <g fill="none" stroke="#d4af37" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 13.5c9-1.5 17 3.5 19.5 12"/>
+    <path d="M45 22.5l4.5 3.5 3-5"/>
+    <path d="M34 50.5c-9 1.5-17-3.5-19.5-12"/>
+    <path d="M19 41.5l-4.5-3.5-3 5"/>
+  </g>
+  <!-- dollar coin (gold) -->
+  <circle cx="21" cy="24" r="10.5" fill="#d4af37"/>
+  <text x="21" y="29" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="14" fill="#0a0a0a">$</text>
+  <!-- ouguiya coin (black with gold ring) -->
+  <circle cx="43" cy="40" r="9.5" fill="#0a0a0a" stroke="#d4af37" stroke-width="2"/>
+  <text x="43" y="44" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="9.5" fill="#d4af37">UM</text>
+</svg>

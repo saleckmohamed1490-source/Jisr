@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Rimal Transfer - دفتر معاملات التحويل وحساب الربح (codename: Jisr)
+MINASSA EXCHANGE - دفتر معاملات التحويل وحساب الربح (codename: Jisr)
 
 Workflow: dollars (USDT) are bought on Binance at a price in MRU, the
 transfer costs some amount of dollars, and the customer pays in MRU to one
@@ -746,7 +746,7 @@ def api_tx_csv():
                     "عبر الدولار" if r["cost_type"] == "usd" else "سعر شراء", r["cur_buy_rate"] or "",
                     r["customer"], r["note"]])
     return Response(buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={
-        "Content-Disposition": f"attachment; filename=rimal-transfer-{datetime.now():%Y%m%d}.csv"})
+        "Content-Disposition": f"attachment; filename=minassa-exchange-{datetime.now():%Y%m%d}.csv"})
 
 
 @app.errorhandler(413)
