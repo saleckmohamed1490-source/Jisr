@@ -194,6 +194,14 @@
     <div id="tab-rates" class="hidden">
       <div class="card">
         <h3>أسعار الصرف</h3>
+        <div class="field" style="margin-bottom:8px">
+          <label>لغة ورقة الـ PDF</label>
+          <div class="seg" id="pdf-lang" style="margin-bottom:0">
+            <button type="button" data-lang="ar">العربية</button>
+            <button type="button" data-lang="fr">Français</button>
+            <button type="button" data-lang="en">English</button>
+          </div>
+        </div>
         <div class="row" style="gap:8px;margin-bottom:12px">
           <button class="btn sm primary" id="pdf-rates">📄 PDF الأسعار</button>
           <button class="btn sm ghost" id="share-rates">نسخ الأسعار لواتساب</button>
@@ -576,65 +584,107 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 // Big number + small unit line for one price cell.
-// CFA currencies (XOF / XAF, or "CFA" in the name) are printed as "how many MRU for 5000 CFA".
+// CFA currencies (XOF / XAF, or "CFA" in the name) are printed as "how many MRU for 5000 CFA", sell price only.
 const CFA_AMOUNT = 5000;
 const isCfa = r => ["XOF", "XAF"].includes(r.code) || /cfa/i.test(r.name) || /cfa/i.test(r.code);
-function priceParts(r, v) {
-  if (!v) return null;
-  if (isCfa(r)) {
-    const mru = mruFromFx(r, v, CFA_AMOUNT);
-    return { big: `${fmt(mru, 2)} أوقية`, small: `مقابل \u2066${CFA_AMOUNT} ${r.code}\u2069` };
-  }
-  // \u2066…\u2069 keeps "1333.33 XOF" / "1 USD" in reading order inside Arabic text.
-  return r.unit === "per100"
-    ? { big: `\u2066${fmt(v, 4)} ${r.code}\u2069`, small: "لكل 100 أوقية" }
-    : { big: `${fmt(v, 4)} أوقية`, small: `لكل \u20661 ${r.code}\u2069` };
+
+// Texts of the PDF sheet in each language.
+const SHEET = {
+  ar: { rtl: true, brand: "جسر", title: "أسعار الصرف اليوم", cols: ["العملة", "الشراء", "البيع"], mru: "أوقية",
+        per100: "لكل 100 أوقية", perUnit: c => `لكل \u20661 ${c}\u2069`, forN: (n, c) => `مقابل \u2066${n} ${c}\u2069`,
+        footer: "الأسعار قابلة للتغيير · جسر", locale: "ar-u-nu-latn", share: "أسعار الصرف" },
+  fr: { rtl: false, brand: "Jisr", title: "Taux de change du jour", cols: ["Devise", "Achat", "Vente"], mru: "MRU",
+        per100: "pour 100 MRU", perUnit: c => `pour 1 ${c}`, forN: (n, c) => `pour ${n} ${c}`,
+        footer: "Taux susceptibles de changer · Jisr", locale: "fr-FR", share: "Taux de change" },
+  en: { rtl: false, brand: "Jisr", title: "Today's exchange rates", cols: ["Currency", "Buy", "Sell"], mru: "MRU",
+        per100: "per 100 MRU", perUnit: c => `per 1 ${c}`, forN: (n, c) => `for ${n} ${c}`,
+        footer: "Rates subject to change · Jisr", locale: "en-GB", share: "Exchange rates" },
+};
+let pdfLang = "ar";
+try { if (SHEET[localStorage.getItem("jisr_pdf_lang")]) pdfLang = localStorage.getItem("jisr_pdf_lang"); } catch (_) {}
+function renderPdfLang() {
+  document.querySelectorAll("#pdf-lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === pdfLang));
 }
-async function drawRatesSheet(list) {
+$("pdf-lang").addEventListener("click", e => {
+  const b = e.target.closest("button[data-lang]"); if (!b) return;
+  pdfLang = b.dataset.lang; renderPdfLang();
+  try { localStorage.setItem("jisr_pdf_lang", pdfLang); } catch (_) {}
+});
+renderPdfLang();
+
+// Currency name for the sheet: as entered for Arabic; for French/English, the entered name if it is
+// not Arabic, otherwise the browser's own name for the currency code (e.g. XOF -> "franc CFA (BCEAO)").
+// Names the browser may not know (newer codes).
+const EXTRA_NAMES = { SLE: { fr: "Leone sierra-léonais", en: "Sierra Leonean leone" } };
+function sheetName(r, lang) {
+  if (lang === "ar" || !/[\u0600-\u06FF]/.test(r.name)) return r.name;
+  if (EXTRA_NAMES[r.code]?.[lang]) return EXTRA_NAMES[r.code][lang];
+  try {
+    const n = new Intl.DisplayNames([lang], { type: "currency" }).of(r.code);
+    if (n && n !== r.code) return n.charAt(0).toUpperCase() + n.slice(1);
+  } catch (_) {}
+  return r.code;
+}
+function priceParts(r, v, T) {
+  if (!v) return null;
+  if (isCfa(r)) return { big: `${fmt(mruFromFx(r, v, CFA_AMOUNT), 2)} ${T.mru}`, small: T.forN(CFA_AMOUNT, r.code) };
+  // \u2066…\u2069 keeps "1333.33 XOF" in reading order inside Arabic text.
+  return r.unit === "per100"
+    ? { big: `\u2066${fmt(v, 4)} ${r.code}\u2069`, small: T.per100 }
+    : { big: `${fmt(v, 4)} ${T.mru}`, small: T.perUnit(r.code) };
+}
+async function drawRatesSheet(list, lang) {
+  const T = SHEET[lang], rtl = T.rtl;
   const FONT = "Tajawal, system-ui, sans-serif";
   await Promise.all(["400", "700", "800"].map(w => document.fonts.load(`${w} 40px Tajawal`).catch(() => {})));
   const W = 1240, PAD = 70, ROW = 190, HEAD = 330, COLS = 140;
   const H = Math.max(1754, HEAD + COLS + list.length * (ROW + 22) + 200);
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
-  ctx.direction = "rtl";
+  ctx.direction = rtl ? "rtl" : "ltr";
+  // Layout is written for right-to-left; X() mirrors positions and START/END swap alignment for LTR.
+  const X = x => rtl ? x : W - x;
+  const START = rtl ? "right" : "left", END = rtl ? "left" : "right";
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
 
   // Header band
   ctx.fillStyle = "#00704a"; ctx.fillRect(0, 0, W, HEAD - 60);
   ctx.fillStyle = "#d4a017"; ctx.fillRect(0, HEAD - 60, W, 8);
-  ctx.fillStyle = "#ffffff"; ctx.textAlign = "right";
-  ctx.font = `800 96px ${FONT}`; ctx.fillText("جسر", W - PAD, 140);
-  ctx.font = `700 52px ${FONT}`; ctx.fillText("أسعار الصرف اليوم", W - PAD, 220);
+  ctx.fillStyle = "#ffffff"; ctx.textAlign = START;
+  ctx.font = `800 96px ${FONT}`; ctx.fillText(T.brand, X(W - PAD), 140);
+  ctx.font = `700 52px ${FONT}`; ctx.fillText(T.title, X(W - PAD), 220);
   const now = new Date();
-  const day = now.toLocaleDateString("ar-u-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const time = now.toLocaleTimeString("ar-u-nu-latn", { hour: "2-digit", minute: "2-digit" });
-  ctx.textAlign = "left"; ctx.font = `500 38px ${FONT}`; ctx.fillStyle = "rgba(255,255,255,.9)";
-  ctx.fillText(day, PAD, 140); ctx.fillText(time, PAD, 200);
+  const day = now.toLocaleDateString(T.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const time = now.toLocaleTimeString(T.locale, { hour: "2-digit", minute: "2-digit" });
+  ctx.textAlign = END; ctx.font = `500 38px ${FONT}`; ctx.fillStyle = "rgba(255,255,255,.9)";
+  ctx.fillText(day, X(PAD), 140); ctx.fillText(time, X(PAD), 200);
 
   // Column titles
-  const colBuy = W * 0.47, colSell = W * 0.22;        // centers of the price columns
+  const colBuy = X(W * 0.47), colSell = X(W * 0.22);   // centers of the price columns
   let y = HEAD + 50;
   ctx.fillStyle = "#5b6b62"; ctx.font = `700 34px ${FONT}`;
-  ctx.textAlign = "right"; ctx.fillText("العملة", W - PAD - 20, y);
-  ctx.textAlign = "center"; ctx.fillText("الشراء", colBuy, y); ctx.fillText("البيع", colSell, y);
+  ctx.textAlign = START; ctx.fillText(T.cols[0], X(W - PAD - 20), y);
+  ctx.textAlign = "center"; ctx.fillText(T.cols[1], colBuy, y); ctx.fillText(T.cols[2], colSell, y);
   y += 40;
 
   for (const r of list) {
     ctx.fillStyle = "#f1f5f2"; roundRect(ctx, PAD, y, W - 2 * PAD, ROW, 28); ctx.fill();
     const mid = y + ROW / 2;
     // currency: flag + name + code
-    ctx.textAlign = "right"; ctx.fillStyle = "#13201a";
+    ctx.textAlign = START; ctx.fillStyle = "#13201a";
     let x = W - PAD - 34;
-    if (r.flag) { ctx.font = `64px ${FONT}`; ctx.fillText(r.flag, x, mid + 22); x -= 92; }
+    if (r.flag) { ctx.font = `64px ${FONT}`; ctx.fillText(r.flag, X(x), mid + 22); x -= 92; }
+    const name = sheetName(r, lang);
     let nameSize = 44;
-    do { ctx.font = `800 ${nameSize}px ${FONT}`; } while (ctx.measureText(r.name).width > x - W * 0.62 && --nameSize > 26);
-    ctx.fillText(r.name, x, mid - 2);
-    ctx.font = `500 30px ${FONT}`; ctx.fillStyle = "#5b6b62"; ctx.fillText(r.code, x, mid + 44);
-    // prices
-    // CFA: only the sell price is printed. Dollar-route currencies have no buy price of their own.
-    const buy = (!isCfa(r) && (costMode(r) === "direct" || isUsdRow(r))) ? priceParts(r, r.buy_rate) : null;
-    const sell = priceParts(r, r.sell_rate);
+    do { ctx.font = `800 ${nameSize}px ${FONT}`; } while (ctx.measureText(name).width > x - W * 0.585 && --nameSize > 28);
+    if (name === r.code) { ctx.fillText(name, X(x), mid + 16); }   // no separate code line when the name is the code
+    else {
+      ctx.fillText(name, X(x), mid - 2);
+      ctx.font = `500 30px ${FONT}`; ctx.fillStyle = "#5b6b62"; ctx.fillText(r.code, X(x), mid + 44);
+    }
+    // prices — CFA: sell only; dollar-route currencies have no buy price of their own.
+    const buy = (!isCfa(r) && (costMode(r) === "direct" || isUsdRow(r))) ? priceParts(r, r.buy_rate, T) : null;
+    const sell = priceParts(r, r.sell_rate, T);
     for (const [cx, part, color] of [[colBuy, buy, "#13201a"], [colSell, sell, "#00704a"]]) {
       ctx.textAlign = "center";
       if (!part) { ctx.fillStyle = "#9aaba1"; ctx.font = `700 48px ${FONT}`; ctx.fillText("—", cx, mid + 16); continue; }
@@ -648,7 +698,7 @@ async function drawRatesSheet(list) {
 
   // Footer
   ctx.textAlign = "center"; ctx.fillStyle = "#9aaba1"; ctx.font = `500 30px ${FONT}`;
-  ctx.fillText("الأسعار قابلة للتغيير · جسر", W / 2, H - 70);
+  ctx.fillText(T.footer, W / 2, H - 70);
   return c;
 }
 $("pdf-rates").addEventListener("click", async () => {
@@ -657,14 +707,14 @@ $("pdf-rates").addEventListener("click", async () => {
   const btn = $("pdf-rates"); btn.disabled = true; const label = btn.textContent; btn.textContent = "جاري التحضير...";
   try {
     await loadScript("/static/vendor/jspdf.umd.min.js");  // jsPDF 2.5.1 (MIT), served locally
-    const canvas = await drawRatesSheet(list);
+    const canvas = await drawRatesSheet(list, pdfLang);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [canvas.width, canvas.height], hotfixes: ["px_scaling"] });
     pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, canvas.width, canvas.height);
-    const name = `jisr-rates-${localDate()}.pdf`;
+    const name = `jisr-rates-${pdfLang}-${localDate()}.pdf`;
     const file = new File([pdf.output("blob")], name, { type: "application/pdf" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: "أسعار الصرف" }); }
+      try { await navigator.share({ files: [file], title: SHEET[pdfLang].share }); }
       catch (ex) { if (ex.name !== "AbortError") throw ex; }
     } else {
       const a = document.createElement("a");
