@@ -404,6 +404,7 @@
           <input type="checkbox" id="party-sound">
         </label>
         <button type="button" class="btn ghost block" id="party-test" style="margin-top:12px">جرّب شاشة الاحتفال 🔥</button>
+        <button type="button" class="btn ghost block admin-only" id="weylk-test" style="margin-top:8px">جرّب ما يراه العامل عند الحذف ⚠️</button>
       </div>
 
       <div class="card" style="margin-top:24px" id="account-card">
@@ -424,6 +425,68 @@
       </div>
     </div>
   </section>
+</div>
+
+<!-- Worker delete warning: can't be dismissed for 5 seconds -->
+<div class="warn-bg hidden" id="warn" role="alertdialog" aria-modal="true" aria-labelledby="warn-title">
+  <div class="warn-card">
+    <div class="warn-icon">⚠️</div>
+    <h2 id="warn-title">تنبيه</h2>
+    <p>عندما تحذف هذه العملية <b>ستُحذف من جهازك</b>،<br>لكن <b>لن تُحذف من جهاز السالك والإدارة</b>.</p>
+    <div class="warn-count" id="warn-count">5</div>
+    <div class="row" style="gap:10px">
+      <button class="btn ghost" id="warn-cancel" disabled>إلغاء</button>
+      <button class="btn danger" id="warn-ok" disabled>حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEYLK: a gunman fires, "ذاك انا السالك" jumps in and catches the bullet -->
+<div class="weylk hidden" id="weylk" role="dialog" aria-label="WEYLK">
+  <div class="weylk-title">WEYLK</div>
+  <svg class="weylk-scene" viewBox="0 0 360 250" aria-hidden="true">
+    <!-- gunman -->
+    <g class="gunman">
+      <circle cx="70" cy="96" r="15" fill="#c98f63"/>
+      <rect x="54" y="88" width="32" height="8" rx="3" fill="#111"/>
+      <circle cx="64" cy="92" r="2.2" fill="#fff"/><circle cx="76" cy="92" r="2.2" fill="#fff"/>
+      <path d="M52 80c4-12 32-12 36 0z" fill="#111"/>
+      <path d="M70 112c-15 0-24 11-24 28v34h48v-34c0-17-9-28-24-28z" fill="#151515" stroke="#7a0f0f" stroke-width="3"/>
+      <path d="M50 174l-5 50h15l10-40 10 40h15l-5-50z" fill="#262626"/>
+      <g class="g-arm">
+        <path d="M84 124l52-14" stroke="#151515" stroke-width="13" stroke-linecap="round"/>
+        <rect x="132" y="101" width="30" height="9" rx="2" fill="#bdbdbd" stroke="#111" stroke-width="2"/>
+        <rect x="136" y="108" width="8" height="14" rx="2" fill="#bdbdbd" stroke="#111" stroke-width="2"/>
+        <polygon class="g-flash" points="164,105 176,96 172,104 186,103 173,110 180,120 168,113 164,124 161,112 150,114 158,106" fill="#ffd54a" stroke="#ff7a00" stroke-width="2"/>
+      </g>
+    </g>
+    <!-- the worker, scared -->
+    <g class="victim">
+      <circle cx="318" cy="104" r="15" fill="#e9b98c"/>
+      <circle cx="313" cy="101" r="3" fill="#fff" stroke="#111"/><circle cx="323" cy="101" r="3" fill="#fff" stroke="#111"/>
+      <ellipse cx="318" cy="111" rx="3.5" ry="4.5" fill="#5a1d1d"/>
+      <path d="M318 120c-13 0-21 10-21 25v30h42v-30c0-15-8-25-21-25z" fill="#2b4a7a"/>
+      <path d="M300 175l-4 50h13l9-36 9 36h13l-4-50z" fill="#333"/>
+    </g>
+    <!-- the bullet -->
+    <rect class="w-bullet" x="160" y="103" width="14" height="6" rx="3" fill="#f1d77a" stroke="#a8821c"/>
+    <!-- Salek catches it -->
+    <g class="salek">
+      <text x="244" y="40" text-anchor="middle" class="salek-label">ذاك انا السالك</text>
+      <circle cx="244" cy="80" r="16" fill="#e9b98c"/>
+      <rect x="230" y="74" width="28" height="7" rx="3" fill="#0a0a0a"/>
+      <path d="M228 66c3-14 29-14 32 0z" fill="#d4af37"/>
+      <path d="M236 88q8 6 16 0" stroke="#5a1d1d" stroke-width="2" fill="none"/>
+      <path d="M244 97c-15 0-24 11-24 28v36h48v-36c0-17-9-28-24-28z" fill="#0a0a0a" stroke="#d4af37" stroke-width="3"/>
+      <path d="M226 161l-5 50h15l8-38 8 38h15l-5-50z" fill="#1a1a1a"/>
+      <path d="M228 112l-20-6" stroke="#0a0a0a" stroke-width="12" stroke-linecap="round"/>
+      <circle cx="204" cy="106" r="7" fill="#e9b98c" stroke="#d4af37" stroke-width="2"/>
+      <g class="sparks" stroke="#ffd54a" stroke-width="3" stroke-linecap="round">
+        <path d="M194 92l-6-8"/><path d="M190 106h-10"/><path d="M194 120l-6 8"/><path d="M206 90v-10"/>
+      </g>
+    </g>
+  </svg>
+  <div class="weylk-sub">😎 الرصاصة عند السالك</div>
 </div>
 
 <!-- Celebration shown after saving an operation -->
@@ -791,6 +854,7 @@ $("user-form").addEventListener("submit", async e => {
 $("party-sound").checked = soundOn();
 $("party-sound").addEventListener("change", e => { try { localStorage.setItem("jisr_party_sound", e.target.checked ? "on" : "off"); } catch (_) {} });
 $("party-test").addEventListener("click", () => celebrate(isAdmin() ? 25 : null));
+$("weylk-test").addEventListener("click", async () => { if (await warnDelete()) playWeylk(); });
 
 // ---------------------------------------------------------------- account (PIN)
 function renderAccount() {
@@ -1318,10 +1382,16 @@ function renderTxList(el, rows, emptyMsg = "لا توجد عمليات") {
 document.addEventListener("click", e => {
   const btn = e.target.closest(".tx-box [data-act], #tx-list [data-act], #history-list [data-act]"); if (!btn) return;
   const t = txCache[btn.closest(".item").dataset.id];
-  if (btn.dataset.act === "edit") editTx(t);
-  else confirmTap(btn, async () => {
+  if (btn.dataset.act === "edit") return editTx(t);
+  const doDelete = async () => {
     await api(`/api/transactions/${t.id}`, { method: "DELETE" });
-    toast("نُقلت إلى سلة المهملات 🗑️"); tab === "home" ? loadHome() : tab === "history" ? loadHistory() : loadList();
+    tab === "home" ? loadHome() : tab === "history" ? loadHistory() : loadList();
+  };
+  if (isAdmin()) return confirmTap(btn, async () => { await doDelete(); toast("نُقلت إلى سلة المهملات 🗑️"); });
+  // Workers: a warning they can't skip for 5 seconds, then the WEYLK scene
+  warnDelete().then(async ok => {
+    if (!ok) return;
+    try { await doDelete(); playWeylk(); } catch (ex) { toast(ex.message); }
   });
 });
 
@@ -1547,6 +1617,46 @@ function celebrate(profit) {
 }
 function closeParty() { $("party").classList.add("hidden"); $("party").classList.remove("go"); }
 $("party").addEventListener("click", closeParty);
+
+// ---------------------------------------------------------------- worker delete warning + WEYLK scene
+function warnDelete() {
+  return new Promise(resolve => {
+    const box = $("warn"), ok = $("warn-ok"), cancel = $("warn-cancel"), count = $("warn-count");
+    let n = 5;
+    ok.disabled = cancel.disabled = true; count.textContent = n; count.classList.remove("done");
+    box.classList.remove("hidden");
+    const timer = setInterval(() => {
+      n -= 1;
+      if (n > 0) { count.textContent = n; return; }
+      clearInterval(timer);
+      count.textContent = "✓"; count.classList.add("done");
+      ok.disabled = cancel.disabled = false;
+    }, 1000);
+    const finish = v => { clearInterval(timer); box.classList.add("hidden"); ok.onclick = cancel.onclick = null; resolve(v); };
+    ok.onclick = () => finish(true);
+    cancel.onclick = () => finish(false);
+  });
+}
+let weylkTimer;
+function catchSound() {
+  try {
+    const ctx = celebrate.ctx || (celebrate.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime;
+    o.type = "triangle"; o.frequency.setValueAtTime(660, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.15);
+    g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.4);
+  } catch (_) {}
+}
+function playWeylk() {
+  const el = $("weylk");
+  el.classList.remove("hidden", "go"); void el.offsetWidth; el.classList.add("go");
+  if (soundOn()) { setTimeout(() => shotSounds(1, 0), 1200); setTimeout(catchSound, 2050); }
+  if (navigator.vibrate) setTimeout(() => navigator.vibrate(60), 1200);
+  clearTimeout(weylkTimer); weylkTimer = setTimeout(closeWeylk, 5200);
+  el.dataset.closable = ""; setTimeout(() => { el.dataset.closable = "1"; }, 2600);
+}
+function closeWeylk() { $("weylk").classList.add("hidden"); $("weylk").classList.remove("go"); }
+$("weylk").addEventListener("click", () => { if ($("weylk").dataset.closable) closeWeylk(); });
 
 // ---------------------------------------------------------------- start
 setRange("month");
